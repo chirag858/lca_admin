@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Building2,
   LogOut,
@@ -240,7 +241,9 @@ export default function AdminDashboard() {
                   {tenants.map((t) => (
                     <tr key={t.tenantId}>
                       <td>
-                        <strong>{t.tenantName}</strong>
+                        <Link href={`/tenants/${t.tenantId}`} className="link-strong">
+                          <strong>{t.tenantName}</strong>
+                        </Link>
                       </td>
                       <td>
                         {t.subscriptionPackage}

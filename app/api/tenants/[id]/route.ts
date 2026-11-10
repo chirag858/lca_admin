@@ -3,6 +3,12 @@ import { invalidOriginResponse, isSameOrigin, parseId } from "@/lib/api-guards";
 
 const USERNAME_PATTERN = /^[A-Za-z0-9._-]{3,100}$/;
 
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const id = parseId((await params).id);
+  if (!id) return Response.json({ error: "Invalid tenant id." }, { status: 400 });
+  return proxyBackend(`tenants/${id}`);
+}
+
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!isSameOrigin(request)) return invalidOriginResponse();
   const id = parseId((await params).id);

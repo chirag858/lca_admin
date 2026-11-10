@@ -1945,6 +1945,14 @@ label textarea {
 .form-grid label {
   margin: 0;
 }
+.link-strong {
+  color: inherit;
+  text-decoration: none;
+}
+.link-strong:hover strong {
+  color: var(--primary);
+  text-decoration: underline;
+}
 .attributes > div {
   display: flex;
   justify-content: space-between;
