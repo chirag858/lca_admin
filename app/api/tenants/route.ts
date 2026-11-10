@@ -53,6 +53,14 @@ export async function POST(request: Request) {
       { status: 400 },
     );
 
+  let paymentAmount: number | undefined;
+  if (body.paymentAmount !== undefined && body.paymentAmount !== null && body.paymentAmount !== "") {
+    const amount = Number(body.paymentAmount);
+    if (!Number.isFinite(amount) || amount < 0)
+      return Response.json({ error: "Enter a valid payment amount." }, { status: 400 });
+    paymentAmount = amount;
+  }
+
   return proxyBackend("tenants", {
     method: "POST",
     body: {
@@ -66,6 +74,7 @@ export async function POST(request: Request) {
       ownerPassword,
       ownerFirstName: typeof body.ownerFirstName === "string" ? body.ownerFirstName.trim() || null : null,
       ownerLastName: typeof body.ownerLastName === "string" ? body.ownerLastName.trim() || null : null,
+      paymentAmount,
     },
   });
 }

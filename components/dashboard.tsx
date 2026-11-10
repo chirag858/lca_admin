@@ -29,7 +29,10 @@ type SubscriptionPackage = {
   defaultMaxFirms: number | null;
   defaultMaxStaffPerFirm: number | null;
   defaultMaxStaffTotal: number | null;
+  monthlyPrice: number;
 };
+
+type PaymentStatus = "Pending" | "Paid" | "Failed" | "Cancelled";
 
 type TenantUsage = {
   tenantId: number;
@@ -46,6 +49,9 @@ type TenantUsage = {
   ownerEmail: string;
   ownerFirstName: string | null;
   ownerLastName: string | null;
+  paymentStatus: PaymentStatus;
+  paymentAmount: number | null;
+  paymentLinkUrl: string | null;
 };
 
 function fmtLimit(value: number | null) {
@@ -65,6 +71,17 @@ function UsagePill({ used, max }: { used: number; max: number | null }) {
       {used}/{fmtLimit(max)}
     </span>
   );
+}
+
+const PAYMENT_TONE: Record<PaymentStatus, "green" | "amber" | "red"> = {
+  Paid: "green",
+  Pending: "amber",
+  Failed: "red",
+  Cancelled: "red",
+};
+
+function PaymentStatusPill({ status }: { status: PaymentStatus }) {
+  return <span className={`usage-pill usage-${PAYMENT_TONE[status]}`}>{status}</span>;
 }
 
 export default function AdminDashboard() {
@@ -110,6 +127,29 @@ export default function AdminDashboard() {
     void load();
     return () => controller.abort();
   }, [retry]);
+
+  const [resendingId, setResendingId] = useState<number | null>(null);
+
+  async function resendPaymentLink(tenant: TenantUsage) {
+    setResendingId(tenant.tenantId);
+    try {
+      const result = await fetchJson<{ paymentLinkUrl: string; emailSent: boolean }>(
+        `/api/tenants/${tenant.tenantId}/resend-payment-link`,
+        { method: "POST" },
+        "Unable to resend payment link.",
+      );
+      notify(
+        result.emailSent
+          ? `Payment link resent to ${tenant.ownerEmail}.`
+          : "Payment link created, but the email could not be sent.",
+      );
+      setRetry((n) => n + 1);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Unable to resend payment link.");
+    } finally {
+      setResendingId(null);
+    }
+  }
 
   async function logout() {
     try {
@@ -192,6 +232,7 @@ export default function AdminDashboard() {
                     <th>FIRMS</th>
                     <th>STAFF</th>
                     <th>STATUS</th>
+                    <th>PAYMENT</th>
                     <th aria-label="Actions" />
                   </tr>
                 </thead>
@@ -215,7 +256,26 @@ export default function AdminDashboard() {
                         <StatusPill on={t.isActive} />
                       </td>
                       <td>
+                        <PaymentStatusPill status={t.paymentStatus} />
+                        {t.paymentAmount !== null && (
+                          <div className="low" style={{ marginTop: 2 }}>
+                            ₹{t.paymentAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </div>
+                        )}
+                      </td>
+                      <td>
                         <div className="row-actions">
+                          {t.paymentStatus !== "Paid" && (
+                            <button
+                              type="button"
+                              title="Resend payment link"
+                              aria-label={"Resend payment link for " + t.tenantName}
+                              disabled={resendingId === t.tenantId}
+                              onClick={() => resendPaymentLink(t)}
+                            >
+                              <RefreshCcw size={15} />
+                            </button>
+                          )}
                           <button type="button" title="Edit limits" aria-label={"Edit limits for " + t.tenantName} onClick={() => setEditing(t)}>
                             <Pencil size={15} />
                           </button>
@@ -248,9 +308,10 @@ export default function AdminDashboard() {
         open={creating}
         packages={packages}
         onClose={() => setCreating(false)}
-        onCreated={(name) => {
+        onCreated={(name, warning, emailSent) => {
           setCreating(false);
-          notify(`Tenant "${name}" was created.`);
+          if (warning) notify(`Tenant "${name}" was created, but: ${warning}`);
+          else notify(`Tenant "${name}" was created${emailSent ? " and a welcome email was sent." : "."}`);
           setRetry((n) => n + 1);
         }}
       />
@@ -303,7 +364,7 @@ function CreateTenantModal({
   open: boolean;
   packages: SubscriptionPackage[];
   onClose: () => void;
-  onCreated: (tenantName: string) => void;
+  onCreated: (tenantName: string, warning: string | null, emailSent: boolean) => void;
 }) {
   const [tenantName, setTenantName] = useState("");
   const [subscriptionPackage, setSubscriptionPackage] = useState("");
@@ -316,6 +377,7 @@ function CreateTenantModal({
   const [showPassword, setShowPassword] = useState(false);
   const [ownerFirstName, setOwnerFirstName] = useState("");
   const [ownerLastName, setOwnerLastName] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState("");
   const [fieldErrors, setFieldErrors] = useState<LimitFieldErrors>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -334,6 +396,7 @@ function CreateTenantModal({
     setShowPassword(false);
     setOwnerFirstName("");
     setOwnerLastName("");
+    setPaymentAmount("");
     setFieldErrors({});
     setError("");
   }
@@ -356,6 +419,7 @@ function CreateTenantModal({
     setMaxFirms(defaults.maxFirms);
     setMaxStaffPerFirm(defaults.maxStaffPerFirm);
     setMaxStaffTotal(defaults.maxStaffTotal);
+    setPaymentAmount(pkg ? String(pkg.monthlyPrice) : "");
   }
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -376,7 +440,7 @@ function CreateTenantModal({
     setSaving(true);
     setError("");
     try {
-      const created = await fetchJson<{ tenantName: string }>(
+      const created = await fetchJson<{ tenantName: string; paymentLinkUrl: string | null; emailSent: boolean; warning: string | null }>(
         "/api/tenants",
         {
           method: "POST",
@@ -392,11 +456,12 @@ function CreateTenantModal({
             ownerPassword,
             ownerFirstName: ownerFirstName.trim(),
             ownerLastName: ownerLastName.trim(),
+            paymentAmount: paymentAmount.trim() === "" ? null : Number(paymentAmount),
           }),
         },
         "Unable to create tenant.",
       );
-      onCreated(created.tenantName);
+      onCreated(created.tenantName, created.warning, created.emailSent);
       reset();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create tenant.");
@@ -481,6 +546,29 @@ function CreateTenantModal({
             This tenant can create up to <strong>{maxFirms || "∞"}</strong> firms, each with up to{" "}
             <strong>{maxStaffPerFirm || "∞"}</strong> staff, and <strong>{maxStaffTotal || "∞"}</strong> staff in total.
           </p>
+        )}
+
+        {subscriptionPackage && (
+          <div className="form-grid">
+            <label>
+              <span>Payment amount (₹)</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+              />
+            </label>
+          </div>
+        )}
+        {subscriptionPackage && Number(paymentAmount) > 0 && (
+          <p className="low">
+            A Razorpay payment link for ₹{paymentAmount} will be emailed to the owner along with their login credentials.
+          </p>
+        )}
+        {subscriptionPackage && Number(paymentAmount) === 0 && (
+          <p className="low">No payment link will be created (amount is ₹0) — only the welcome email with login credentials is sent.</p>
         )}
 
         <div className="form-grid">

@@ -18,6 +18,7 @@ type Package = {
   defaultMaxFirms: number | null;
   defaultMaxStaffPerFirm: number | null;
   defaultMaxStaffTotal: number | null;
+  monthlyPrice: number;
   isActive: boolean;
   sortOrder: number;
 };
@@ -111,6 +112,7 @@ export default function AdminPackagesPage() {
                     <th>MAX FIRMS</th>
                     <th>MAX STAFF / FIRM</th>
                     <th>MAX STAFF TOTAL</th>
+                    <th>PRICE/MO</th>
                     <th>STATUS</th>
                     <th aria-label="Actions" />
                   </tr>
@@ -125,6 +127,7 @@ export default function AdminPackagesPage() {
                       <td>{fmtLimit(p.defaultMaxFirms)}</td>
                       <td>{fmtLimit(p.defaultMaxStaffPerFirm)}</td>
                       <td>{fmtLimit(p.defaultMaxStaffTotal)}</td>
+                      <td>₹{p.monthlyPrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
                       <td>
                         <StatusPill on={p.isActive} onLabel="Active" offLabel="Retired" />
                       </td>
@@ -207,6 +210,7 @@ function CreatePackageModal({
   const [defaultMaxFirms, setDefaultMaxFirms] = useState("");
   const [defaultMaxStaffPerFirm, setDefaultMaxStaffPerFirm] = useState("");
   const [defaultMaxStaffTotal, setDefaultMaxStaffTotal] = useState("");
+  const [monthlyPrice, setMonthlyPrice] = useState("0");
   const [sortOrder, setSortOrder] = useState("0");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
@@ -218,6 +222,7 @@ function CreatePackageModal({
     setDefaultMaxFirms("");
     setDefaultMaxStaffPerFirm("");
     setDefaultMaxStaffTotal("");
+    setMonthlyPrice("0");
     setSortOrder("0");
     setFieldErrors({});
     setError("");
@@ -251,6 +256,7 @@ function CreatePackageModal({
             defaultMaxFirms: defaultMaxFirms.trim() === "" ? null : Number(defaultMaxFirms),
             defaultMaxStaffPerFirm: defaultMaxStaffPerFirm.trim() === "" ? null : Number(defaultMaxStaffPerFirm),
             defaultMaxStaffTotal: defaultMaxStaffTotal.trim() === "" ? null : Number(defaultMaxStaffTotal),
+            monthlyPrice: Number(monthlyPrice) || 0,
             sortOrder: Number(sortOrder) || 0,
           }),
         },
@@ -313,6 +319,10 @@ function CreatePackageModal({
         </div>
         <div className="form-grid">
           <label>
+            <span>Monthly price (₹)</span>
+            <input type="number" min={0} step="0.01" value={monthlyPrice} onChange={(e) => setMonthlyPrice(e.target.value)} />
+          </label>
+          <label>
             <span>Sort order</span>
             <input type="number" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
           </label>
@@ -341,6 +351,7 @@ function EditPackageModal({
   const [defaultMaxFirms, setDefaultMaxFirms] = useState("");
   const [defaultMaxStaffPerFirm, setDefaultMaxStaffPerFirm] = useState("");
   const [defaultMaxStaffTotal, setDefaultMaxStaffTotal] = useState("");
+  const [monthlyPrice, setMonthlyPrice] = useState("0");
   const [sortOrder, setSortOrder] = useState("0");
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -352,6 +363,7 @@ function EditPackageModal({
     setDefaultMaxFirms(pkg.defaultMaxFirms === null ? "" : String(pkg.defaultMaxFirms));
     setDefaultMaxStaffPerFirm(pkg.defaultMaxStaffPerFirm === null ? "" : String(pkg.defaultMaxStaffPerFirm));
     setDefaultMaxStaffTotal(pkg.defaultMaxStaffTotal === null ? "" : String(pkg.defaultMaxStaffTotal));
+    setMonthlyPrice(String(pkg.monthlyPrice));
     setSortOrder(String(pkg.sortOrder));
     setIsActive(pkg.isActive);
     setError("");
@@ -375,6 +387,7 @@ function EditPackageModal({
             defaultMaxFirms: defaultMaxFirms.trim() === "" ? null : Number(defaultMaxFirms),
             defaultMaxStaffPerFirm: defaultMaxStaffPerFirm.trim() === "" ? null : Number(defaultMaxStaffPerFirm),
             defaultMaxStaffTotal: defaultMaxStaffTotal.trim() === "" ? null : Number(defaultMaxStaffTotal),
+            monthlyPrice: Number(monthlyPrice) || 0,
             sortOrder: Number(sortOrder) || 0,
             isActive,
           }),
@@ -414,6 +427,12 @@ function EditPackageModal({
           <label>
             <span>Max staff total</span>
             <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxStaffTotal} onChange={(e) => setDefaultMaxStaffTotal(e.target.value)} />
+          </label>
+        </div>
+        <div className="form-grid">
+          <label>
+            <span>Monthly price (₹)</span>
+            <input type="number" min={0} step="0.01" value={monthlyPrice} onChange={(e) => setMonthlyPrice(e.target.value)} />
           </label>
         </div>
         <label className="checkbox-label">

@@ -29,6 +29,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ code
     return Response.json({ error: "Limits must be whole numbers of 0 or more, or left blank for unlimited." }, { status: 400 });
 
   const sortOrder = Number.isInteger(Number(body.sortOrder)) ? Number(body.sortOrder) : 0;
+  const monthlyPrice = Number(body.monthlyPrice);
+  if (!Number.isFinite(monthlyPrice) || monthlyPrice < 0)
+    return Response.json({ error: "Enter a valid monthly price." }, { status: 400 });
 
   return proxyBackend(`subscription-packages/${encodeURIComponent(code)}`, {
     method: "PUT",
@@ -37,6 +40,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ code
       defaultMaxFirms: defaultMaxFirms ?? null,
       defaultMaxStaffPerFirm: defaultMaxStaffPerFirm ?? null,
       defaultMaxStaffTotal: defaultMaxStaffTotal ?? null,
+      monthlyPrice,
       sortOrder,
       isActive: body.isActive === true,
     },
