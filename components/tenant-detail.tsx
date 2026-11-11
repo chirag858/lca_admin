@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Building2,
+  CalendarClock,
   CreditCard,
   LogOut,
   RefreshCcw,
@@ -78,9 +79,57 @@ const PAYMENT_TONE: Record<PaymentStatus, "green" | "amber" | "red"> = {
   Cancelled: "red",
 };
 
+type Package = {
+  code: string;
+  displayName: string;
+  defaultMaxFirms: number | null;
+  defaultMaxStaffPerFirm: number | null;
+  defaultMaxStaffTotal: number | null;
+  monthlyPrice: number;
+};
+
+function fmtShortDate(value: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function daysBetween(from: Date, to: Date) {
+  return Math.round((to.getTime() - from.getTime()) / 86400000);
+}
+
+function tenureText(createdAt: string) {
+  const days = daysBetween(new Date(createdAt), new Date());
+  if (days < 1) return "Joined today";
+  if (days < 30) return `${days} day${days === 1 ? "" : "s"} on the platform`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"} on the platform`;
+  const years = Math.floor(months / 12);
+  const remMonths = months % 12;
+  return `${years} yr${years === 1 ? "" : "s"}${remMonths ? ` ${remMonths} mo` : ""} on the platform`;
+}
+
+function expiryText(expiresAt: string | null, blocked: boolean) {
+  if (!expiresAt) return blocked ? "No active subscription" : "No expiry recorded";
+  const days = daysBetween(new Date(), new Date(expiresAt));
+  if (days < 0) return `Expired ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago`;
+  if (days === 0) return "Expires today";
+  return `Renews in ${days} day${days === 1 ? "" : "s"}`;
+}
+
+function UsageBar({ used, max }: { used: number; max: number | null }) {
+  const pct = max && max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0;
+  const tone = pct >= 100 ? "var(--danger)" : pct >= 75 ? "var(--warning)" : "var(--success)";
+  return (
+    <div className="breakdown-track" style={{ marginTop: 6 }}>
+      <span style={{ width: `${max ? pct : 0}%`, background: tone }} />
+    </div>
+  );
+}
+
 export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
   const router = useRouter();
   const [tenant, setTenant] = useState<TenantDetail | null>(null);
+  const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
@@ -110,6 +159,16 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
     void load();
     return () => controller.abort();
   }, [tenantId, retry]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchJson<Package[]>("/api/subscription-packages", { signal: controller.signal }, "Unable to load packages.")
+      .then((data) => {
+        if (!controller.signal.aborted) setPackages(data);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
 
   async function logout() {
     try {
@@ -211,12 +270,14 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                     <h2>
                       <StatusPill on={tenant.isActive} />
                     </h2>
+                    <small className="low">{tenureText(tenant.createdAt)}</small>
                   </div>
                 </article>
                 <article className="card stat">
                   <div>
                     <span>Plan</span>
                     <h2 style={{ fontSize: 20 }}>{tenant.subscriptionPackage}</h2>
+                    <small className="low">{expiryText(tenant.subscriptionExpiresAt, tenant.isAccessBlocked)}</small>
                   </div>
                 </article>
                 <article className="card stat">
@@ -225,6 +286,7 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                     <h2>
                       {tenant.firmsUsed}/{fmtLimit(tenant.maxFirms)}
                     </h2>
+                    <UsageBar used={tenant.firmsUsed} max={tenant.maxFirms} />
                   </div>
                 </article>
                 <article className="card stat">
@@ -233,9 +295,64 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                     <h2>
                       {tenant.staffUsed}/{fmtLimit(tenant.maxStaffTotal)}
                     </h2>
+                    <UsageBar used={tenant.staffUsed} max={tenant.maxStaffTotal} />
                   </div>
                 </article>
               </div>
+
+              <section className="card catalogue">
+                <CardHeading title="Subscription" text="Plan, limits, and renewal timeline." />
+                <div className="form-grid" style={{ padding: "0 24px 24px" }}>
+                  <label>
+                    <span>Plan</span>
+                    <p>
+                      {tenant.subscriptionPackage}
+                      {tenant.isCustomOverride && (
+                        <span className="pill" style={{ marginLeft: 8 }}>
+                          Custom override
+                        </span>
+                      )}
+                    </p>
+                  </label>
+                  <label>
+                    <span>Monthly price</span>
+                    <p>
+                      {(() => {
+                        const pkg = packages.find((p) => p.code === tenant.subscriptionPackage);
+                        return pkg ? fmtMoney(pkg.monthlyPrice) : "—";
+                      })()}
+                    </p>
+                  </label>
+                  <label>
+                    <span>Max firms</span>
+                    <p>{fmtLimit(tenant.maxFirms)}</p>
+                  </label>
+                  <label>
+                    <span>Max staff / firm</span>
+                    <p>{fmtLimit(tenant.maxStaffPerFirm)}</p>
+                  </label>
+                  <label>
+                    <span>Max staff total</span>
+                    <p>{fmtLimit(tenant.maxStaffTotal)}</p>
+                  </label>
+                  <label>
+                    <span>Tenant created</span>
+                    <p>{fmtDate(tenant.createdAt)}</p>
+                  </label>
+                  <label>
+                    <span>Subscription renewal</span>
+                    <p>
+                      <CalendarClock size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
+                      {fmtShortDate(tenant.subscriptionExpiresAt)}
+                      {tenant.subscriptionExpiresAt && (
+                        <span className="low" style={{ marginLeft: 8 }}>
+                          ({expiryText(tenant.subscriptionExpiresAt, tenant.isAccessBlocked)})
+                        </span>
+                      )}
+                    </p>
+                  </label>
+                </div>
+              </section>
 
               <section className="card catalogue">
                 <CardHeading title="Owner" text="The tenant owner's account." />
