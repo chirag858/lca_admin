@@ -12,6 +12,7 @@ import {
   Pencil,
   Eye,
   EyeOff,
+  CreditCard,
 } from "lucide-react";
 import { fetchJson } from "@/lib/http";
 import { PageHeader } from "./ui/page-header";
@@ -53,6 +54,8 @@ type TenantUsage = {
   paymentStatus: PaymentStatus;
   paymentAmount: number | null;
   paymentLinkUrl: string | null;
+  subscriptionExpiresAt: string | null;
+  isAccessBlocked: boolean;
 };
 
 function fmtLimit(value: number | null) {
@@ -81,8 +84,18 @@ const PAYMENT_TONE: Record<PaymentStatus, "green" | "amber" | "red"> = {
   Cancelled: "red",
 };
 
-function PaymentStatusPill({ status }: { status: PaymentStatus }) {
-  return <span className={`usage-pill usage-${PAYMENT_TONE[status]}`}>{status}</span>;
+function PaymentStatusPill({ status, isAccessBlocked }: { status: PaymentStatus; isAccessBlocked: boolean }) {
+  const expired = status === "Paid" && isAccessBlocked;
+  return (
+    <span className={`usage-pill usage-${expired ? "red" : PAYMENT_TONE[status]}`}>
+      {expired ? "Expired" : status}
+    </span>
+  );
+}
+
+function fmtDate(value: string | null) {
+  if (!value) return null;
+  return new Date(value).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
 export default function AdminDashboard() {
@@ -149,6 +162,27 @@ export default function AdminDashboard() {
       notify(err instanceof Error ? err.message : "Unable to resend payment link.");
     } finally {
       setResendingId(null);
+    }
+  }
+
+  const [markingPaidId, setMarkingPaidId] = useState<number | null>(null);
+
+  async function markPaid(tenant: TenantUsage) {
+    if (!window.confirm(`Mark "${tenant.tenantName}" as paid for a fresh 1-month cycle? Use this only for grandfathering or an offline payment — it does not touch Razorpay.`))
+      return;
+    setMarkingPaidId(tenant.tenantId);
+    try {
+      await fetchJson(
+        `/api/tenants/${tenant.tenantId}/mark-paid`,
+        { method: "POST" },
+        "Unable to mark tenant as paid.",
+      );
+      notify(`"${tenant.tenantName}" marked Paid for the next month.`);
+      setRetry((n) => n + 1);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Unable to mark tenant as paid.");
+    } finally {
+      setMarkingPaidId(null);
     }
   }
 
@@ -259,25 +293,44 @@ export default function AdminDashboard() {
                         <StatusPill on={t.isActive} />
                       </td>
                       <td>
-                        <PaymentStatusPill status={t.paymentStatus} />
+                        <PaymentStatusPill status={t.paymentStatus} isAccessBlocked={t.isAccessBlocked} />
                         {t.paymentAmount !== null && (
                           <div className="low" style={{ marginTop: 2 }}>
                             ₹{t.paymentAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                           </div>
                         )}
+                        {t.subscriptionExpiresAt && (
+                          <div className="low" style={{ marginTop: 2 }}>
+                            {t.isAccessBlocked ? "Expired " : "Renews "}
+                            {fmtDate(t.subscriptionExpiresAt)}
+                          </div>
+                        )}
                       </td>
                       <td>
                         <div className="row-actions">
-                          {t.paymentStatus !== "Paid" && (
-                            <button
-                              type="button"
-                              title="Resend payment link"
-                              aria-label={"Resend payment link for " + t.tenantName}
-                              disabled={resendingId === t.tenantId}
-                              onClick={() => resendPaymentLink(t)}
-                            >
-                              <RefreshCcw size={15} />
-                            </button>
+                          {t.isAccessBlocked && (
+                            <>
+                              {t.paymentAmount !== null && (
+                                <button
+                                  type="button"
+                                  title="Resend payment link"
+                                  aria-label={"Resend payment link for " + t.tenantName}
+                                  disabled={resendingId === t.tenantId}
+                                  onClick={() => resendPaymentLink(t)}
+                                >
+                                  <RefreshCcw size={15} />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                title="Mark as paid"
+                                aria-label={"Mark " + t.tenantName + " as paid"}
+                                disabled={markingPaidId === t.tenantId}
+                                onClick={() => markPaid(t)}
+                              >
+                                <CreditCard size={15} />
+                              </button>
+                            </>
                           )}
                           <button type="button" title="Edit limits" aria-label={"Edit limits for " + t.tenantName} onClick={() => setEditing(t)}>
                             <Pencil size={15} />

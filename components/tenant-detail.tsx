@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Building2,
+  CreditCard,
   LogOut,
   RefreshCcw,
   Users,
@@ -48,6 +49,8 @@ type TenantDetail = {
   paymentLinkUrl: string | null;
   razorpayPaymentId: string | null;
   paymentReceivedAt: string | null;
+  subscriptionExpiresAt: string | null;
+  isAccessBlocked: boolean;
   firms: Firm[];
 };
 
@@ -82,6 +85,7 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [resending, setResending] = useState(false);
+  const [markingPaid, setMarkingPaid] = useState(false);
   const { toast, show: notify, dismiss: dismissToast } = useToast();
 
   useEffect(() => {
@@ -135,6 +139,21 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
       notify(err instanceof Error ? err.message : "Unable to resend payment link.");
     } finally {
       setResending(false);
+    }
+  }
+
+  async function markPaid() {
+    if (!tenant) return;
+    if (!window.confirm("Mark this tenant as paid and grant a 1-month subscription?")) return;
+    setMarkingPaid(true);
+    try {
+      await fetchJson(`/api/tenants/${tenant.tenantId}/mark-paid`, { method: "POST" }, "Unable to mark tenant as paid.");
+      notify("Tenant marked as paid.");
+      setRetry((n) => n + 1);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Unable to mark tenant as paid.");
+    } finally {
+      setMarkingPaid(false);
     }
   }
 
@@ -249,18 +268,31 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                   title="Payment"
                   text="Subscription payment status and Razorpay details."
                 >
-                  {tenant.paymentStatus !== "Paid" && (
-                    <button type="button" className="button" disabled={resending} onClick={resendPaymentLink}>
-                      <RefreshCcw size={15} /> {resending ? "Resending…" : "Resend payment link"}
-                    </button>
-                  )}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {tenant.isAccessBlocked && tenant.paymentAmount !== null && (
+                      <button type="button" className="button" disabled={resending} onClick={resendPaymentLink}>
+                        <RefreshCcw size={15} /> {resending ? "Resending…" : "Resend payment link"}
+                      </button>
+                    )}
+                    {tenant.isAccessBlocked && (
+                      <button type="button" className="button" disabled={markingPaid} onClick={markPaid}>
+                        <CreditCard size={15} /> {markingPaid ? "Marking…" : "Mark as paid"}
+                      </button>
+                    )}
+                  </div>
                 </CardHeading>
                 <div className="form-grid" style={{ padding: "0 24px 24px" }}>
                   <label>
                     <span>Status</span>
                     <p>
-                      <span className={`usage-pill usage-${PAYMENT_TONE[tenant.paymentStatus]}`}>
-                        {tenant.paymentStatus}
+                      <span
+                        className={`usage-pill usage-${
+                          tenant.paymentStatus === "Paid" && tenant.isAccessBlocked
+                            ? "red"
+                            : PAYMENT_TONE[tenant.paymentStatus]
+                        }`}
+                      >
+                        {tenant.paymentStatus === "Paid" && tenant.isAccessBlocked ? "Expired" : tenant.paymentStatus}
                       </span>
                     </p>
                   </label>
@@ -287,6 +319,10 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                   <label>
                     <span>Paid at</span>
                     <p>{fmtDate(tenant.paymentReceivedAt)}</p>
+                  </label>
+                  <label>
+                    <span>Subscription {tenant.isAccessBlocked ? "expired" : "renews"}</span>
+                    <p>{fmtDate(tenant.subscriptionExpiresAt)}</p>
                   </label>
                 </div>
               </section>
