@@ -310,17 +310,15 @@ export default function AdminDashboard() {
                         <div className="row-actions">
                           {t.isAccessBlocked && (
                             <>
-                              {t.paymentAmount !== null && (
-                                <button
-                                  type="button"
-                                  title="Resend payment link"
-                                  aria-label={"Resend payment link for " + t.tenantName}
-                                  disabled={resendingId === t.tenantId}
-                                  onClick={() => resendPaymentLink(t)}
-                                >
-                                  <RefreshCcw size={15} />
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                title="Send payment link"
+                                aria-label={"Send payment link for " + t.tenantName}
+                                disabled={resendingId === t.tenantId}
+                                onClick={() => resendPaymentLink(t)}
+                              >
+                                <RefreshCcw size={15} />
+                              </button>
                               <button
                                 type="button"
                                 title="Mark as paid"

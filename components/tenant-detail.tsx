@@ -269,9 +269,9 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                   text="Subscription payment status and Razorpay details."
                 >
                   <div style={{ display: "flex", gap: 8 }}>
-                    {tenant.isAccessBlocked && tenant.paymentAmount !== null && (
+                    {tenant.isAccessBlocked && (
                       <button type="button" className="button" disabled={resending} onClick={resendPaymentLink}>
-                        <RefreshCcw size={15} /> {resending ? "Resending…" : "Resend payment link"}
+                        <RefreshCcw size={15} /> {resending ? "Sending…" : "Send payment link"}
                       </button>
                     )}
                     {tenant.isAccessBlocked && (
