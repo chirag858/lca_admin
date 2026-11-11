@@ -383,7 +383,7 @@ export default function AdminDashboard() {
   );
 }
 
-type LimitFieldErrors = Partial<Record<"tenantName" | "ownerUsername" | "ownerEmail" | "ownerPassword" | "maxFirms" | "maxStaffPerFirm" | "maxStaffTotal", string>>;
+type LimitFieldErrors = Partial<Record<"tenantName" | "sourceUrl" | "ownerUsername" | "ownerEmail" | "ownerPassword" | "maxFirms" | "maxStaffPerFirm" | "maxStaffTotal", string>>;
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -421,6 +421,7 @@ function CreateTenantModal({
   onCreated: (tenantName: string, warning: string | null, emailSent: boolean) => void;
 }) {
   const [tenantName, setTenantName] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
   const [subscriptionPackage, setSubscriptionPackage] = useState("");
   const [maxFirms, setMaxFirms] = useState("");
   const [maxStaffPerFirm, setMaxStaffPerFirm] = useState("");
@@ -440,6 +441,7 @@ function CreateTenantModal({
 
   function reset() {
     setTenantName("");
+    setSourceUrl("");
     setSubscriptionPackage("");
     setMaxFirms("");
     setMaxStaffPerFirm("");
@@ -480,6 +482,8 @@ function CreateTenantModal({
     e.preventDefault();
     const errors: LimitFieldErrors = {};
     if (!tenantName.trim()) errors.tenantName = "Tenant name is required.";
+    if (sourceUrl.trim() && !/^https?:\/\/.+/i.test(sourceUrl.trim()))
+      errors.sourceUrl = "Enter a valid URL (starting with http:// or https://).";
     if (!ownerUsername.trim()) errors.ownerUsername = "Owner username is required.";
     if (!ownerEmail.trim()) errors.ownerEmail = "Owner email is required.";
     if (!ownerPassword) errors.ownerPassword = "Owner password is required.";
@@ -501,6 +505,7 @@ function CreateTenantModal({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             tenantName: tenantName.trim(),
+            sourceUrl: sourceUrl.trim() || null,
             subscriptionPackage,
             maxFirms: maxFirms.trim() === "" ? null : Number(maxFirms),
             maxStaffPerFirm: maxStaffPerFirm.trim() === "" ? null : Number(maxStaffPerFirm),
@@ -541,6 +546,22 @@ function CreateTenantModal({
               }}
             />
             <FieldError message={fieldErrors.tenantName} />
+          </label>
+          <label>
+            <span>Source URL</span>
+            <input
+              type="url"
+              maxLength={500}
+              autoComplete="off"
+              placeholder="https://example.com"
+              value={sourceUrl}
+              aria-invalid={!!fieldErrors.sourceUrl}
+              onChange={(e) => {
+                setSourceUrl(e.target.value);
+                setFieldErrors((p) => ({ ...p, sourceUrl: undefined }));
+              }}
+            />
+            <FieldError message={fieldErrors.sourceUrl} />
           </label>
           <label>
             <span>Subscription package <span className="required-marker" aria-hidden="true">*</span></span>

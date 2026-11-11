@@ -32,6 +32,7 @@ type Firm = {
 type TenantDetail = {
   tenantId: number;
   tenantName: string;
+  sourceUrl: string | null;
   subscriptionPackage: string;
   isCustomOverride: boolean;
   maxFirms: number | null;
@@ -303,6 +304,18 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
               <section className="card catalogue">
                 <CardHeading title="Subscription" text="Plan, limits, and renewal timeline." />
                 <div className="form-grid" style={{ padding: "0 24px 24px" }}>
+                  <label>
+                    <span>Source URL</span>
+                    <p>
+                      {tenant.sourceUrl ? (
+                        <a href={tenant.sourceUrl} target="_blank" rel="noreferrer">
+                          {tenant.sourceUrl}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </p>
+                  </label>
                   <label>
                     <span>Plan</span>
                     <p>

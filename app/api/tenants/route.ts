@@ -17,6 +17,10 @@ export async function POST(request: Request) {
   if (!tenantName || tenantName.length > 200)
     return Response.json({ error: "Enter a valid tenant name." }, { status: 400 });
 
+  const sourceUrl = typeof body.sourceUrl === "string" ? body.sourceUrl.trim() : "";
+  if (sourceUrl && (sourceUrl.length > 500 || !/^https?:\/\/.+/i.test(sourceUrl)))
+    return Response.json({ error: "Enter a valid source URL (starting with http:// or https://)." }, { status: 400 });
+
   const subscriptionPackage = typeof body.subscriptionPackage === "string" ? body.subscriptionPackage : "";
   if (!PACKAGES.includes(subscriptionPackage))
     return Response.json({ error: "Select a valid subscription package." }, { status: 400 });
@@ -65,6 +69,7 @@ export async function POST(request: Request) {
     method: "POST",
     body: {
       tenantName,
+      sourceUrl: sourceUrl || null,
       subscriptionPackage,
       maxFirms,
       maxStaffPerFirm,
