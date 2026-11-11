@@ -39,6 +39,7 @@ type PaymentStatus = "Pending" | "Paid" | "Failed" | "Cancelled";
 type TenantUsage = {
   tenantId: number;
   tenantName: string;
+  sourceUrl: string | null;
   subscriptionPackage: string;
   isCustomOverride: boolean;
   maxFirms: number | null;
@@ -724,7 +725,7 @@ function CreateTenantModal({
   );
 }
 
-type EditTenantFieldErrors = Partial<Record<"tenantName" | "ownerUsername" | "ownerEmail" | "newOwnerPassword", string>>;
+type EditTenantFieldErrors = Partial<Record<"tenantName" | "sourceUrl" | "ownerUsername" | "ownerEmail" | "newOwnerPassword", string>>;
 
 function EditLimitsModal({
   tenant,
@@ -738,6 +739,7 @@ function EditLimitsModal({
   onSaved: () => void;
 }) {
   const [tenantName, setTenantName] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
   const [tenantActive, setTenantActive] = useState(true);
   const [ownerUsername, setOwnerUsername] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
@@ -759,6 +761,7 @@ function EditLimitsModal({
   useEffect(() => {
     if (!tenant) return;
     setTenantName(tenant.tenantName);
+    setSourceUrl(tenant.sourceUrl ?? "");
     setTenantActive(tenant.isActive);
     setOwnerUsername(tenant.ownerUsername);
     setOwnerEmail(tenant.ownerEmail);
@@ -782,6 +785,8 @@ function EditLimitsModal({
     e.preventDefault();
     const errors: EditTenantFieldErrors = {};
     if (!tenantName.trim()) errors.tenantName = "Tenant name is required.";
+    if (sourceUrl.trim() && !/^https?:\/\/.+/i.test(sourceUrl.trim()))
+      errors.sourceUrl = "Enter a valid URL (starting with http:// or https://).";
     if (!ownerUsername.trim()) errors.ownerUsername = "Owner username is required.";
     if (!ownerEmail.trim()) errors.ownerEmail = "Owner email is required.";
     setFieldErrors(errors);
@@ -797,6 +802,7 @@ function EditLimitsModal({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             tenantName: tenantName.trim(),
+            sourceUrl: sourceUrl.trim() || null,
             ownerUsername: ownerUsername.trim(),
             ownerEmail: ownerEmail.trim(),
             ownerFirstName: ownerFirstName.trim(),
@@ -851,6 +857,22 @@ function EditLimitsModal({
               }}
             />
             <FieldError message={fieldErrors.tenantName} />
+          </label>
+          <label>
+            <span>Source URL</span>
+            <input
+              type="url"
+              maxLength={500}
+              autoComplete="off"
+              placeholder="https://example.com"
+              value={sourceUrl}
+              aria-invalid={!!fieldErrors.sourceUrl}
+              onChange={(e) => {
+                setSourceUrl(e.target.value);
+                setFieldErrors((p) => ({ ...p, sourceUrl: undefined }));
+              }}
+            />
+            <FieldError message={fieldErrors.sourceUrl} />
           </label>
           <label className="checkbox-label" style={{ alignSelf: "end", marginBottom: 2 }}>
             <input className="checkbox" type="checkbox" checked={tenantActive} onChange={(e) => setTenantActive(e.target.checked)} />{" "}

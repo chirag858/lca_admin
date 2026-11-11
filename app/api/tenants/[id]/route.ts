@@ -21,6 +21,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (!tenantName || tenantName.length > 200)
     return Response.json({ error: "Enter a valid tenant name." }, { status: 400 });
 
+  const sourceUrl = typeof body.sourceUrl === "string" ? body.sourceUrl.trim() : "";
+  if (sourceUrl && (sourceUrl.length > 500 || !/^https?:\/\/.+/i.test(sourceUrl)))
+    return Response.json({ error: "Enter a valid source URL (starting with http:// or https://)." }, { status: 400 });
+
   const ownerUsername = typeof body.ownerUsername === "string" ? body.ownerUsername.trim() : "";
   if (!USERNAME_PATTERN.test(ownerUsername))
     return Response.json(
@@ -40,6 +44,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     method: "PUT",
     body: {
       tenantName,
+      sourceUrl: sourceUrl || null,
       ownerUsername,
       ownerEmail,
       ownerFirstName: typeof body.ownerFirstName === "string" ? body.ownerFirstName.trim() || null : null,
