@@ -54,3 +54,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     },
   });
 }
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!isSameOrigin(request)) return invalidOriginResponse();
+  const id = parseId((await params).id);
+  if (!id) return Response.json({ error: "Invalid tenant id." }, { status: 400 });
+
+  return proxyBackend(`tenants/${id}`, { method: "DELETE" });
+}

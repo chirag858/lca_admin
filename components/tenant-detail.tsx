@@ -8,6 +8,7 @@ import {
   CreditCard,
   LogOut,
   RefreshCcw,
+  Trash2,
   Users,
 } from "lucide-react";
 import { fetchJson } from "@/lib/http";
@@ -16,6 +17,7 @@ import { CardHeading } from "./ui/card-heading";
 import { EmptyState } from "./ui/empty-state";
 import { StatusPill } from "./ui/status-pill";
 import { Toast } from "./ui/toast";
+import { ConfirmDialog } from "./ui/confirm-dialog";
 import { useToast } from "@/lib/hooks/use-toast";
 
 type PaymentStatus = "Pending" | "Paid" | "Failed" | "Cancelled";
@@ -136,6 +138,8 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
   const [retry, setRetry] = useState(0);
   const [resending, setResending] = useState(false);
   const [markingPaid, setMarkingPaid] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const { toast, show: notify, dismiss: dismissToast } = useToast();
 
   useEffect(() => {
@@ -214,6 +218,20 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
       notify(err instanceof Error ? err.message : "Unable to mark tenant as paid.");
     } finally {
       setMarkingPaid(false);
+    }
+  }
+
+  async function deleteTenant() {
+    if (!tenant) return;
+    setConfirmDeleteOpen(false);
+    setDeleting(true);
+    try {
+      await fetchJson(`/api/tenants/${tenant.tenantId}`, { method: "DELETE" }, "Unable to delete tenant.");
+      router.replace("/");
+      router.refresh();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Unable to delete tenant.");
+      setDeleting(false);
     }
   }
 
@@ -499,10 +517,39 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                   )}
                 </div>
               </section>
+
+              <section className="card catalogue">
+                <CardHeading
+                  title="Danger zone"
+                  text="Deleting removes this tenant and its firms/branches from the platform. Their owner can no longer sign in."
+                >
+                  <button
+                    type="button"
+                    className="button danger"
+                    disabled={deleting}
+                    onClick={() => setConfirmDeleteOpen(true)}
+                  >
+                    <Trash2 size={15} /> {deleting ? "Deleting…" : "Delete tenant"}
+                  </button>
+                </CardHeading>
+              </section>
             </>
           )}
         </main>
       </div>
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="Delete this tenant?"
+        description={
+          tenant
+            ? `"${tenant.tenantName}" and its ${tenant.firms.length} firm${tenant.firms.length === 1 ? "" : "s"} will be removed. The owner and staff will lose access immediately. This cannot be undone from the UI.`
+            : ""
+        }
+        confirmLabel="Delete tenant"
+        danger
+        onConfirm={deleteTenant}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
       <Toast message={toast} onDismiss={dismissToast} />
     </>
   );
