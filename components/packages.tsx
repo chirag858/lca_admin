@@ -18,6 +18,11 @@ type Package = {
   defaultMaxFirms: number | null;
   defaultMaxStaffPerFirm: number | null;
   defaultMaxStaffTotal: number | null;
+  defaultMaxProducts: number | null;
+  defaultMaxCategories: number | null;
+  defaultMaxCategoryMappings: number | null;
+  defaultMaxTransportFirms: number | null;
+  defaultMaxAttributes: number | null;
   monthlyPrice: number;
   isActive: boolean;
   sortOrder: number;
@@ -112,6 +117,11 @@ export default function AdminPackagesPage() {
                     <th>MAX FIRMS</th>
                     <th>MAX STAFF / FIRM</th>
                     <th>MAX STAFF TOTAL</th>
+                    <th>MAX PRODUCTS</th>
+                    <th>MAX CATEGORIES</th>
+                    <th>MAX CAT. MAPPINGS</th>
+                    <th>MAX TRANSPORT FIRMS</th>
+                    <th>MAX ATTRIBUTES</th>
                     <th>PRICE/MO</th>
                     <th>STATUS</th>
                     <th aria-label="Actions" />
@@ -127,6 +137,11 @@ export default function AdminPackagesPage() {
                       <td>{fmtLimit(p.defaultMaxFirms)}</td>
                       <td>{fmtLimit(p.defaultMaxStaffPerFirm)}</td>
                       <td>{fmtLimit(p.defaultMaxStaffTotal)}</td>
+                      <td>{fmtLimit(p.defaultMaxProducts)}</td>
+                      <td>{fmtLimit(p.defaultMaxCategories)}</td>
+                      <td>{fmtLimit(p.defaultMaxCategoryMappings)}</td>
+                      <td>{fmtLimit(p.defaultMaxTransportFirms)}</td>
+                      <td>{fmtLimit(p.defaultMaxAttributes)}</td>
                       <td>₹{p.monthlyPrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
                       <td>
                         <StatusPill on={p.isActive} onLabel="Active" offLabel="Retired" />
@@ -210,6 +225,11 @@ function CreatePackageModal({
   const [defaultMaxFirms, setDefaultMaxFirms] = useState("");
   const [defaultMaxStaffPerFirm, setDefaultMaxStaffPerFirm] = useState("");
   const [defaultMaxStaffTotal, setDefaultMaxStaffTotal] = useState("");
+  const [defaultMaxProducts, setDefaultMaxProducts] = useState("");
+  const [defaultMaxCategories, setDefaultMaxCategories] = useState("");
+  const [defaultMaxCategoryMappings, setDefaultMaxCategoryMappings] = useState("");
+  const [defaultMaxTransportFirms, setDefaultMaxTransportFirms] = useState("");
+  const [defaultMaxAttributes, setDefaultMaxAttributes] = useState("");
   const [monthlyPrice, setMonthlyPrice] = useState("0");
   const [sortOrder, setSortOrder] = useState("0");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -222,6 +242,11 @@ function CreatePackageModal({
     setDefaultMaxFirms("");
     setDefaultMaxStaffPerFirm("");
     setDefaultMaxStaffTotal("");
+    setDefaultMaxProducts("");
+    setDefaultMaxCategories("");
+    setDefaultMaxCategoryMappings("");
+    setDefaultMaxTransportFirms("");
+    setDefaultMaxAttributes("");
     setMonthlyPrice("0");
     setSortOrder("0");
     setFieldErrors({});
@@ -256,6 +281,11 @@ function CreatePackageModal({
             defaultMaxFirms: defaultMaxFirms.trim() === "" ? null : Number(defaultMaxFirms),
             defaultMaxStaffPerFirm: defaultMaxStaffPerFirm.trim() === "" ? null : Number(defaultMaxStaffPerFirm),
             defaultMaxStaffTotal: defaultMaxStaffTotal.trim() === "" ? null : Number(defaultMaxStaffTotal),
+            defaultMaxProducts: defaultMaxProducts.trim() === "" ? null : Number(defaultMaxProducts),
+            defaultMaxCategories: defaultMaxCategories.trim() === "" ? null : Number(defaultMaxCategories),
+            defaultMaxCategoryMappings: defaultMaxCategoryMappings.trim() === "" ? null : Number(defaultMaxCategoryMappings),
+            defaultMaxTransportFirms: defaultMaxTransportFirms.trim() === "" ? null : Number(defaultMaxTransportFirms),
+            defaultMaxAttributes: defaultMaxAttributes.trim() === "" ? null : Number(defaultMaxAttributes),
             monthlyPrice: Number(monthlyPrice) || 0,
             sortOrder: Number(sortOrder) || 0,
           }),
@@ -319,6 +349,30 @@ function CreatePackageModal({
         </div>
         <div className="form-grid">
           <label>
+            <span>Max products</span>
+            <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxProducts} onChange={(e) => setDefaultMaxProducts(e.target.value)} />
+          </label>
+          <label>
+            <span>Max categories</span>
+            <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxCategories} onChange={(e) => setDefaultMaxCategories(e.target.value)} />
+          </label>
+          <label>
+            <span>Max category mappings</span>
+            <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxCategoryMappings} onChange={(e) => setDefaultMaxCategoryMappings(e.target.value)} />
+          </label>
+        </div>
+        <div className="form-grid">
+          <label>
+            <span>Max transport firms</span>
+            <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxTransportFirms} onChange={(e) => setDefaultMaxTransportFirms(e.target.value)} />
+          </label>
+          <label>
+            <span>Max attributes</span>
+            <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxAttributes} onChange={(e) => setDefaultMaxAttributes(e.target.value)} />
+          </label>
+        </div>
+        <div className="form-grid">
+          <label>
             <span>Monthly price (₹)</span>
             <input type="number" min={0} step="0.01" value={monthlyPrice} onChange={(e) => setMonthlyPrice(e.target.value)} />
           </label>
@@ -351,6 +405,11 @@ function EditPackageModal({
   const [defaultMaxFirms, setDefaultMaxFirms] = useState("");
   const [defaultMaxStaffPerFirm, setDefaultMaxStaffPerFirm] = useState("");
   const [defaultMaxStaffTotal, setDefaultMaxStaffTotal] = useState("");
+  const [defaultMaxProducts, setDefaultMaxProducts] = useState("");
+  const [defaultMaxCategories, setDefaultMaxCategories] = useState("");
+  const [defaultMaxCategoryMappings, setDefaultMaxCategoryMappings] = useState("");
+  const [defaultMaxTransportFirms, setDefaultMaxTransportFirms] = useState("");
+  const [defaultMaxAttributes, setDefaultMaxAttributes] = useState("");
   const [monthlyPrice, setMonthlyPrice] = useState("0");
   const [sortOrder, setSortOrder] = useState("0");
   const [isActive, setIsActive] = useState(true);
@@ -363,6 +422,11 @@ function EditPackageModal({
     setDefaultMaxFirms(pkg.defaultMaxFirms === null ? "" : String(pkg.defaultMaxFirms));
     setDefaultMaxStaffPerFirm(pkg.defaultMaxStaffPerFirm === null ? "" : String(pkg.defaultMaxStaffPerFirm));
     setDefaultMaxStaffTotal(pkg.defaultMaxStaffTotal === null ? "" : String(pkg.defaultMaxStaffTotal));
+    setDefaultMaxProducts(pkg.defaultMaxProducts === null ? "" : String(pkg.defaultMaxProducts));
+    setDefaultMaxCategories(pkg.defaultMaxCategories === null ? "" : String(pkg.defaultMaxCategories));
+    setDefaultMaxCategoryMappings(pkg.defaultMaxCategoryMappings === null ? "" : String(pkg.defaultMaxCategoryMappings));
+    setDefaultMaxTransportFirms(pkg.defaultMaxTransportFirms === null ? "" : String(pkg.defaultMaxTransportFirms));
+    setDefaultMaxAttributes(pkg.defaultMaxAttributes === null ? "" : String(pkg.defaultMaxAttributes));
     setMonthlyPrice(String(pkg.monthlyPrice));
     setSortOrder(String(pkg.sortOrder));
     setIsActive(pkg.isActive);
@@ -387,6 +451,11 @@ function EditPackageModal({
             defaultMaxFirms: defaultMaxFirms.trim() === "" ? null : Number(defaultMaxFirms),
             defaultMaxStaffPerFirm: defaultMaxStaffPerFirm.trim() === "" ? null : Number(defaultMaxStaffPerFirm),
             defaultMaxStaffTotal: defaultMaxStaffTotal.trim() === "" ? null : Number(defaultMaxStaffTotal),
+            defaultMaxProducts: defaultMaxProducts.trim() === "" ? null : Number(defaultMaxProducts),
+            defaultMaxCategories: defaultMaxCategories.trim() === "" ? null : Number(defaultMaxCategories),
+            defaultMaxCategoryMappings: defaultMaxCategoryMappings.trim() === "" ? null : Number(defaultMaxCategoryMappings),
+            defaultMaxTransportFirms: defaultMaxTransportFirms.trim() === "" ? null : Number(defaultMaxTransportFirms),
+            defaultMaxAttributes: defaultMaxAttributes.trim() === "" ? null : Number(defaultMaxAttributes),
             monthlyPrice: Number(monthlyPrice) || 0,
             sortOrder: Number(sortOrder) || 0,
             isActive,
@@ -427,6 +496,30 @@ function EditPackageModal({
           <label>
             <span>Max staff total</span>
             <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxStaffTotal} onChange={(e) => setDefaultMaxStaffTotal(e.target.value)} />
+          </label>
+        </div>
+        <div className="form-grid">
+          <label>
+            <span>Max products</span>
+            <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxProducts} onChange={(e) => setDefaultMaxProducts(e.target.value)} />
+          </label>
+          <label>
+            <span>Max categories</span>
+            <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxCategories} onChange={(e) => setDefaultMaxCategories(e.target.value)} />
+          </label>
+          <label>
+            <span>Max category mappings</span>
+            <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxCategoryMappings} onChange={(e) => setDefaultMaxCategoryMappings(e.target.value)} />
+          </label>
+        </div>
+        <div className="form-grid">
+          <label>
+            <span>Max transport firms</span>
+            <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxTransportFirms} onChange={(e) => setDefaultMaxTransportFirms(e.target.value)} />
+          </label>
+          <label>
+            <span>Max attributes</span>
+            <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxAttributes} onChange={(e) => setDefaultMaxAttributes(e.target.value)} />
           </label>
         </div>
         <div className="form-grid">

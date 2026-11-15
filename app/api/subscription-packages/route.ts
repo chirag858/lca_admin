@@ -32,7 +32,16 @@ export async function POST(request: Request) {
   const defaultMaxFirms = limitOrNull(body.defaultMaxFirms);
   const defaultMaxStaffPerFirm = limitOrNull(body.defaultMaxStaffPerFirm);
   const defaultMaxStaffTotal = limitOrNull(body.defaultMaxStaffTotal);
-  if (defaultMaxFirms === null || defaultMaxStaffPerFirm === null || defaultMaxStaffTotal === null)
+  const defaultMaxProducts = limitOrNull(body.defaultMaxProducts);
+  const defaultMaxCategories = limitOrNull(body.defaultMaxCategories);
+  const defaultMaxCategoryMappings = limitOrNull(body.defaultMaxCategoryMappings);
+  const defaultMaxTransportFirms = limitOrNull(body.defaultMaxTransportFirms);
+  const defaultMaxAttributes = limitOrNull(body.defaultMaxAttributes);
+  if (
+    defaultMaxFirms === null || defaultMaxStaffPerFirm === null || defaultMaxStaffTotal === null ||
+    defaultMaxProducts === null || defaultMaxCategories === null || defaultMaxCategoryMappings === null ||
+    defaultMaxTransportFirms === null || defaultMaxAttributes === null
+  )
     return Response.json({ error: "Limits must be whole numbers of 0 or more, or left blank for unlimited." }, { status: 400 });
 
   const sortOrder = Number.isInteger(Number(body.sortOrder)) ? Number(body.sortOrder) : 0;
@@ -48,6 +57,11 @@ export async function POST(request: Request) {
       defaultMaxFirms: defaultMaxFirms ?? null,
       defaultMaxStaffPerFirm: defaultMaxStaffPerFirm ?? null,
       defaultMaxStaffTotal: defaultMaxStaffTotal ?? null,
+      defaultMaxProducts: defaultMaxProducts ?? null,
+      defaultMaxCategories: defaultMaxCategories ?? null,
+      defaultMaxCategoryMappings: defaultMaxCategoryMappings ?? null,
+      defaultMaxTransportFirms: defaultMaxTransportFirms ?? null,
+      defaultMaxAttributes: defaultMaxAttributes ?? null,
       monthlyPrice,
       sortOrder,
     },

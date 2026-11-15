@@ -42,6 +42,11 @@ type TenantDetail = {
   maxStaffPerFirm: number | null;
   maxStaffTotal: number | null;
   staffUsed: number;
+  maxProducts: number | null;
+  maxCategories: number | null;
+  maxCategoryMappings: number | null;
+  maxTransportFirms: number | null;
+  maxAttributes: number | null;
   isActive: boolean;
   createdAt: string;
   ownerUsername: string;
@@ -365,6 +370,26 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                   <label>
                     <span>Max staff total</span>
                     <p>{fmtLimit(tenant.maxStaffTotal)}</p>
+                  </label>
+                  <label>
+                    <span>Max products</span>
+                    <p>{fmtLimit(tenant.maxProducts)}</p>
+                  </label>
+                  <label>
+                    <span>Max categories</span>
+                    <p>{fmtLimit(tenant.maxCategories)}</p>
+                  </label>
+                  <label>
+                    <span>Max category mappings</span>
+                    <p>{fmtLimit(tenant.maxCategoryMappings)}</p>
+                  </label>
+                  <label>
+                    <span>Max transport firms</span>
+                    <p>{fmtLimit(tenant.maxTransportFirms)}</p>
+                  </label>
+                  <label>
+                    <span>Max attributes</span>
+                    <p>{fmtLimit(tenant.maxAttributes)}</p>
                   </label>
                   <label>
                     <span>Tenant created</span>

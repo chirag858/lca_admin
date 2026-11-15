@@ -23,7 +23,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const maxFirms = limitOrNull(body.maxFirms);
   const maxStaffPerFirm = limitOrNull(body.maxStaffPerFirm);
   const maxStaffTotal = limitOrNull(body.maxStaffTotal);
-  if (maxFirms === null || maxStaffPerFirm === null || maxStaffTotal === null)
+  const maxProducts = limitOrNull(body.maxProducts);
+  const maxCategories = limitOrNull(body.maxCategories);
+  const maxCategoryMappings = limitOrNull(body.maxCategoryMappings);
+  const maxTransportFirms = limitOrNull(body.maxTransportFirms);
+  const maxAttributes = limitOrNull(body.maxAttributes);
+  if (
+    maxFirms === null || maxStaffPerFirm === null || maxStaffTotal === null ||
+    maxProducts === null || maxCategories === null || maxCategoryMappings === null ||
+    maxTransportFirms === null || maxAttributes === null
+  )
     return Response.json({ error: "Limits must be whole numbers of 0 or more." }, { status: 400 });
 
   return proxyBackend(`tenants/${id}/limits`, {
@@ -33,6 +42,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       maxFirms,
       maxStaffPerFirm,
       maxStaffTotal,
+      maxProducts,
+      maxCategories,
+      maxCategoryMappings,
+      maxTransportFirms,
+      maxAttributes,
       allowOverLimit: body.allowOverLimit === true,
     },
   });

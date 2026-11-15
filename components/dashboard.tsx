@@ -31,6 +31,11 @@ type SubscriptionPackage = {
   defaultMaxFirms: number | null;
   defaultMaxStaffPerFirm: number | null;
   defaultMaxStaffTotal: number | null;
+  defaultMaxProducts: number | null;
+  defaultMaxCategories: number | null;
+  defaultMaxCategoryMappings: number | null;
+  defaultMaxTransportFirms: number | null;
+  defaultMaxAttributes: number | null;
   monthlyPrice: number;
 };
 
@@ -47,6 +52,11 @@ type TenantUsage = {
   maxStaffPerFirm: number | null;
   maxStaffTotal: number | null;
   staffUsed: number;
+  maxProducts: number | null;
+  maxCategories: number | null;
+  maxCategoryMappings: number | null;
+  maxTransportFirms: number | null;
+  maxAttributes: number | null;
   isActive: boolean;
   ownerUsername: string;
   ownerEmail: string;
@@ -384,7 +394,9 @@ export default function AdminDashboard() {
   );
 }
 
-type LimitFieldErrors = Partial<Record<"tenantName" | "sourceUrl" | "ownerUsername" | "ownerEmail" | "ownerPassword" | "maxFirms" | "maxStaffPerFirm" | "maxStaffTotal", string>>;
+type LimitFieldErrors = Partial<Record<"tenantName" | "sourceUrl" | "ownerUsername" | "ownerEmail" | "ownerPassword" | "maxFirms" | "maxStaffPerFirm" | "maxStaffTotal" | "maxProducts" | "maxCategories" | "maxCategoryMappings" | "maxTransportFirms" | "maxAttributes", string>>;
+
+type LimitField = "maxFirms" | "maxStaffPerFirm" | "maxStaffTotal" | "maxProducts" | "maxCategories" | "maxCategoryMappings" | "maxTransportFirms" | "maxAttributes";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -396,16 +408,32 @@ function FieldError({ message }: { message?: string }) {
 }
 
 function limitsFromPackage(pkg: SubscriptionPackage | undefined) {
+  function f(value: number | null | undefined) {
+    return value === null || value === undefined ? "" : String(value);
+  }
   return {
-    maxFirms: pkg?.defaultMaxFirms === null || pkg?.defaultMaxFirms === undefined ? "" : String(pkg.defaultMaxFirms),
-    maxStaffPerFirm: pkg?.defaultMaxStaffPerFirm === null || pkg?.defaultMaxStaffPerFirm === undefined ? "" : String(pkg.defaultMaxStaffPerFirm),
-    maxStaffTotal: pkg?.defaultMaxStaffTotal === null || pkg?.defaultMaxStaffTotal === undefined ? "" : String(pkg.defaultMaxStaffTotal),
+    maxFirms: f(pkg?.defaultMaxFirms),
+    maxStaffPerFirm: f(pkg?.defaultMaxStaffPerFirm),
+    maxStaffTotal: f(pkg?.defaultMaxStaffTotal),
+    maxProducts: f(pkg?.defaultMaxProducts),
+    maxCategories: f(pkg?.defaultMaxCategories),
+    maxCategoryMappings: f(pkg?.defaultMaxCategoryMappings),
+    maxTransportFirms: f(pkg?.defaultMaxTransportFirms),
+    maxAttributes: f(pkg?.defaultMaxAttributes),
   };
 }
 
-function isOverridden(pkg: SubscriptionPackage | undefined, field: "maxFirms" | "maxStaffPerFirm" | "maxStaffTotal", value: string) {
+function isOverridden(pkg: SubscriptionPackage | undefined, field: LimitField, value: string) {
   if (!pkg) return false;
-  const defaultValue = field === "maxFirms" ? pkg.defaultMaxFirms : field === "maxStaffPerFirm" ? pkg.defaultMaxStaffPerFirm : pkg.defaultMaxStaffTotal;
+  const defaultValue =
+    field === "maxFirms" ? pkg.defaultMaxFirms :
+    field === "maxStaffPerFirm" ? pkg.defaultMaxStaffPerFirm :
+    field === "maxStaffTotal" ? pkg.defaultMaxStaffTotal :
+    field === "maxProducts" ? pkg.defaultMaxProducts :
+    field === "maxCategories" ? pkg.defaultMaxCategories :
+    field === "maxCategoryMappings" ? pkg.defaultMaxCategoryMappings :
+    field === "maxTransportFirms" ? pkg.defaultMaxTransportFirms :
+    pkg.defaultMaxAttributes;
   const defaultText = defaultValue === null || defaultValue === undefined ? "" : String(defaultValue);
   return value !== defaultText;
 }
@@ -427,6 +455,11 @@ function CreateTenantModal({
   const [maxFirms, setMaxFirms] = useState("");
   const [maxStaffPerFirm, setMaxStaffPerFirm] = useState("");
   const [maxStaffTotal, setMaxStaffTotal] = useState("");
+  const [maxProducts, setMaxProducts] = useState("");
+  const [maxCategories, setMaxCategories] = useState("");
+  const [maxCategoryMappings, setMaxCategoryMappings] = useState("");
+  const [maxTransportFirms, setMaxTransportFirms] = useState("");
+  const [maxAttributes, setMaxAttributes] = useState("");
   const [ownerUsername, setOwnerUsername] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
@@ -447,6 +480,11 @@ function CreateTenantModal({
     setMaxFirms("");
     setMaxStaffPerFirm("");
     setMaxStaffTotal("");
+    setMaxProducts("");
+    setMaxCategories("");
+    setMaxCategoryMappings("");
+    setMaxTransportFirms("");
+    setMaxAttributes("");
     setOwnerUsername("");
     setOwnerEmail("");
     setOwnerPassword("");
@@ -469,6 +507,11 @@ function CreateTenantModal({
       setMaxFirms("");
       setMaxStaffPerFirm("");
       setMaxStaffTotal("");
+      setMaxProducts("");
+      setMaxCategories("");
+      setMaxCategoryMappings("");
+      setMaxTransportFirms("");
+      setMaxAttributes("");
       return;
     }
     const pkg = packages.find((p) => p.code === code);
@@ -476,6 +519,11 @@ function CreateTenantModal({
     setMaxFirms(defaults.maxFirms);
     setMaxStaffPerFirm(defaults.maxStaffPerFirm);
     setMaxStaffTotal(defaults.maxStaffTotal);
+    setMaxProducts(defaults.maxProducts);
+    setMaxCategories(defaults.maxCategories);
+    setMaxCategoryMappings(defaults.maxCategoryMappings);
+    setMaxTransportFirms(defaults.maxTransportFirms);
+    setMaxAttributes(defaults.maxAttributes);
     setPaymentAmount(pkg ? String(pkg.monthlyPrice) : "");
   }
 
@@ -511,6 +559,11 @@ function CreateTenantModal({
             maxFirms: maxFirms.trim() === "" ? null : Number(maxFirms),
             maxStaffPerFirm: maxStaffPerFirm.trim() === "" ? null : Number(maxStaffPerFirm),
             maxStaffTotal: maxStaffTotal.trim() === "" ? null : Number(maxStaffTotal),
+            maxProducts: maxProducts.trim() === "" ? null : Number(maxProducts),
+            maxCategories: maxCategories.trim() === "" ? null : Number(maxCategories),
+            maxCategoryMappings: maxCategoryMappings.trim() === "" ? null : Number(maxCategoryMappings),
+            maxTransportFirms: maxTransportFirms.trim() === "" ? null : Number(maxTransportFirms),
+            maxAttributes: maxAttributes.trim() === "" ? null : Number(maxAttributes),
             ownerUsername: ownerUsername.trim(),
             ownerEmail: ownerEmail.trim(),
             ownerPassword,
@@ -613,6 +666,41 @@ function CreateTenantModal({
               />
               {isOverridden(selectedPackage, "maxStaffTotal", maxStaffTotal) && <small className="pill">Custom override</small>}
               <FieldError message={fieldErrors.maxStaffTotal} />
+            </label>
+          </div>
+        )}
+
+        {subscriptionPackage && (
+          <div className="form-grid">
+            <label>
+              <span>Max products</span>
+              <input type="number" min={0} value={maxProducts} onChange={(e) => setMaxProducts(e.target.value)} />
+              {isOverridden(selectedPackage, "maxProducts", maxProducts) && <small className="pill">Custom override</small>}
+            </label>
+            <label>
+              <span>Max categories</span>
+              <input type="number" min={0} value={maxCategories} onChange={(e) => setMaxCategories(e.target.value)} />
+              {isOverridden(selectedPackage, "maxCategories", maxCategories) && <small className="pill">Custom override</small>}
+            </label>
+            <label>
+              <span>Max category mappings</span>
+              <input type="number" min={0} value={maxCategoryMappings} onChange={(e) => setMaxCategoryMappings(e.target.value)} />
+              {isOverridden(selectedPackage, "maxCategoryMappings", maxCategoryMappings) && <small className="pill">Custom override</small>}
+            </label>
+          </div>
+        )}
+
+        {subscriptionPackage && (
+          <div className="form-grid">
+            <label>
+              <span>Max transport firms</span>
+              <input type="number" min={0} value={maxTransportFirms} onChange={(e) => setMaxTransportFirms(e.target.value)} />
+              {isOverridden(selectedPackage, "maxTransportFirms", maxTransportFirms) && <small className="pill">Custom override</small>}
+            </label>
+            <label>
+              <span>Max attributes</span>
+              <input type="number" min={0} value={maxAttributes} onChange={(e) => setMaxAttributes(e.target.value)} />
+              {isOverridden(selectedPackage, "maxAttributes", maxAttributes) && <small className="pill">Custom override</small>}
             </label>
           </div>
         )}
@@ -753,6 +841,11 @@ function EditLimitsModal({
   const [maxFirms, setMaxFirms] = useState("");
   const [maxStaffPerFirm, setMaxStaffPerFirm] = useState("");
   const [maxStaffTotal, setMaxStaffTotal] = useState("");
+  const [maxProducts, setMaxProducts] = useState("");
+  const [maxCategories, setMaxCategories] = useState("");
+  const [maxCategoryMappings, setMaxCategoryMappings] = useState("");
+  const [maxTransportFirms, setMaxTransportFirms] = useState("");
+  const [maxAttributes, setMaxAttributes] = useState("");
   const [allowOverLimit, setAllowOverLimit] = useState(false);
 
   const [saving, setSaving] = useState(false);
@@ -774,6 +867,11 @@ function EditLimitsModal({
     setMaxFirms(tenant.maxFirms === null ? "" : String(tenant.maxFirms));
     setMaxStaffPerFirm(tenant.maxStaffPerFirm === null ? "" : String(tenant.maxStaffPerFirm));
     setMaxStaffTotal(tenant.maxStaffTotal === null ? "" : String(tenant.maxStaffTotal));
+    setMaxProducts(tenant.maxProducts === null ? "" : String(tenant.maxProducts));
+    setMaxCategories(tenant.maxCategories === null ? "" : String(tenant.maxCategories));
+    setMaxCategoryMappings(tenant.maxCategoryMappings === null ? "" : String(tenant.maxCategoryMappings));
+    setMaxTransportFirms(tenant.maxTransportFirms === null ? "" : String(tenant.maxTransportFirms));
+    setMaxAttributes(tenant.maxAttributes === null ? "" : String(tenant.maxAttributes));
     setAllowOverLimit(false);
     setError("");
   }, [tenant]);
@@ -823,6 +921,11 @@ function EditLimitsModal({
             maxFirms: maxFirms.trim() === "" ? null : Number(maxFirms),
             maxStaffPerFirm: maxStaffPerFirm.trim() === "" ? null : Number(maxStaffPerFirm),
             maxStaffTotal: maxStaffTotal.trim() === "" ? null : Number(maxStaffTotal),
+            maxProducts: maxProducts.trim() === "" ? null : Number(maxProducts),
+            maxCategories: maxCategories.trim() === "" ? null : Number(maxCategories),
+            maxCategoryMappings: maxCategoryMappings.trim() === "" ? null : Number(maxCategoryMappings),
+            maxTransportFirms: maxTransportFirms.trim() === "" ? null : Number(maxTransportFirms),
+            maxAttributes: maxAttributes.trim() === "" ? null : Number(maxAttributes),
             allowOverLimit,
           }),
         },
@@ -963,6 +1066,30 @@ function EditLimitsModal({
           <label>
             <span>Max staff total</span>
             <input type="number" min={0} value={maxStaffTotal} onChange={(e) => setMaxStaffTotal(e.target.value)} />
+          </label>
+        </div>
+        <div className="form-grid">
+          <label>
+            <span>Max products</span>
+            <input type="number" min={0} value={maxProducts} onChange={(e) => setMaxProducts(e.target.value)} />
+          </label>
+          <label>
+            <span>Max categories</span>
+            <input type="number" min={0} value={maxCategories} onChange={(e) => setMaxCategories(e.target.value)} />
+          </label>
+          <label>
+            <span>Max category mappings</span>
+            <input type="number" min={0} value={maxCategoryMappings} onChange={(e) => setMaxCategoryMappings(e.target.value)} />
+          </label>
+        </div>
+        <div className="form-grid">
+          <label>
+            <span>Max transport firms</span>
+            <input type="number" min={0} value={maxTransportFirms} onChange={(e) => setMaxTransportFirms(e.target.value)} />
+          </label>
+          <label>
+            <span>Max attributes</span>
+            <input type="number" min={0} value={maxAttributes} onChange={(e) => setMaxAttributes(e.target.value)} />
           </label>
         </div>
         <label className="checkbox-label">
