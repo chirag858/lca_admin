@@ -21,6 +21,7 @@ import { fetchJson } from "@/lib/http";
 import { PageHeader } from "./ui/page-header";
 import { CardHeading } from "./ui/card-heading";
 import { EmptyState } from "./ui/empty-state";
+import { Skeleton, SkeletonStats, SkeletonFields } from "./ui/skeleton";
 import { StatusPill } from "./ui/status-pill";
 import { Toast } from "./ui/toast";
 import { ConfirmDialog } from "./ui/confirm-dialog";
@@ -324,7 +325,7 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
         <main className="content">
           <PageHeader
             trail="Admin"
-            title={tenant ? tenant.tenantName : loading ? "Loading…" : "Tenant"}
+            title={tenant ? tenant.tenantName : loading ? "" : "Tenant"}
             pill={tenant?.isCustomOverride ? "Custom override" : undefined}
             description="Full tenant detail: plan, usage, companies, branches, and payment status."
             actions={
@@ -345,9 +346,23 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
           )}
 
           {!error && (loading || !tenant) && (
-            <section className="card">
-              <EmptyState icon={<Building2 size={28} />} title="Loading tenant…" text={null} />
-            </section>
+            <>
+              <SkeletonStats />
+              <div className="tab-nav" aria-hidden="true">
+                {TABS.map((tab) => (
+                  <span key={tab.key} style={{ padding: "10px 16px" }}>
+                    <Skeleton width={70 + tab.label.length} height={13} />
+                  </span>
+                ))}
+              </div>
+              <section className="card catalogue">
+                <div style={{ padding: 24, display: "grid", gap: 8 }}>
+                  <Skeleton width={180} height={16} />
+                  <Skeleton width={260} height={12} />
+                </div>
+                <SkeletonFields />
+              </section>
+            </>
           )}
 
           {!error && tenant && (

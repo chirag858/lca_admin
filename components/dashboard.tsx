@@ -18,6 +18,7 @@ import { fetchJson } from "@/lib/http";
 import { PageHeader } from "./ui/page-header";
 import { CardHeading } from "./ui/card-heading";
 import { EmptyState } from "./ui/empty-state";
+import { Skeleton, SkeletonRows } from "./ui/skeleton";
 import { StatusPill } from "./ui/status-pill";
 import { Modal } from "./ui/modal";
 import { DialogActions } from "./ui/dialog-actions";
@@ -293,7 +294,7 @@ export default function AdminDashboard() {
               <article className="card stat" key={label}>
                 <div>
                   <span>{label}</span>
-                  <h2>{loading ? "—" : String(value).padStart(2, "0")}</h2>
+                  <h2>{loading ? <Skeleton width={46} height={24} /> : String(value).padStart(2, "0")}</h2>
                 </div>
                 <span className={"icon-tile " + color}>
                   <Icon size={23} />
@@ -361,7 +362,8 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pagedTenants.map((t) => (
+                  {loading && <SkeletonRows cols={7} widths={["60%", "40%", "50%", "50%", "40%", "60%", "20%"]} />}
+                  {!loading && pagedTenants.map((t) => (
                     <tr key={t.tenantId}>
                       <td>
                         <Link href={`/tenants/${t.tenantId}`} className="link-strong">
@@ -428,17 +430,15 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
-              {!pagedTenants.length && (
+              {!loading && !pagedTenants.length && (
                 <EmptyState
                   icon={<Building2 size={28} />}
                   title={
-                    loading
-                      ? "Loading tenants…"
-                      : error
-                        ? "Unable to load tenants"
-                        : tenants.length
-                          ? "No tenants match your filters"
-                          : "No tenants yet"
+                    error
+                      ? "Unable to load tenants"
+                      : tenants.length
+                        ? "No tenants match your filters"
+                        : "No tenants yet"
                   }
                   text={
                     <span role={error ? "alert" : "status"}>

@@ -1,13 +1,20 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Public_Sans } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const publicSans = Public_Sans({
+const inter = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
-  variable: "--font-public-sans",
+  variable: "--font-inter",
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-jakarta",
 });
 
 export const metadata: Metadata = {
@@ -21,7 +28,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body suppressHydrationWarning className={publicSans.variable}>
+      <body suppressHydrationWarning className={`${inter.variable} ${plusJakarta.variable}`}>
         {children}
       </body>
     </html>

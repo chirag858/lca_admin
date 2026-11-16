@@ -7,6 +7,7 @@ import { fetchJson } from "@/lib/http";
 import { PageHeader } from "./ui/page-header";
 import { CardHeading } from "./ui/card-heading";
 import { EmptyState } from "./ui/empty-state";
+import { Skeleton, SkeletonChartCard } from "./ui/skeleton";
 import { RangeSelect, rangeCutoff, type AnalyticsRange } from "./ui/range-select";
 
 type SubscriptionPackage = {
@@ -444,7 +445,7 @@ export default function PlatformAnalytics() {
             <article className="card stat" key={label}>
               <div>
                 <span>{label}</span>
-                <h2>{loading ? "—" : value}</h2>
+                <h2>{loading ? <Skeleton width={56} height={24} /> : value}</h2>
               </div>
               <span className={"icon-tile " + color}>
                 <Icon size={23} />
@@ -463,7 +464,7 @@ export default function PlatformAnalytics() {
             <article className="card stat" key={label}>
               <div>
                 <span>{label}</span>
-                <h2>{loading ? "—" : value}</h2>
+                <h2>{loading ? <Skeleton width={56} height={24} /> : value}</h2>
               </div>
               <span className={"icon-tile " + color}>
                 <Icon size={23} />
@@ -472,11 +473,22 @@ export default function PlatformAnalytics() {
           ))}
         </section>
 
-        {!loading && !error && tenants.length === 0 ? (
+        {loading ? (
+          <>
+            <div className="analytics-grid">
+              <SkeletonChartCard />
+              <SkeletonChartCard />
+            </div>
+            <div className="analytics-grid">
+              <SkeletonChartCard height={140} />
+              <SkeletonChartCard height={140} />
+            </div>
+          </>
+        ) : !error && tenants.length === 0 ? (
           <section className="card catalogue">
             <EmptyState icon={<Users size={28} />} title="No data yet" text="Onboard a tenant to see analytics here." />
           </section>
-        ) : !loading && !error && rangedTenants.length === 0 ? (
+        ) : !error && rangedTenants.length === 0 ? (
           <section className="card catalogue">
             <EmptyState icon={<Users size={28} />} title="No tenants in this range" text="Try a wider date range." />
           </section>

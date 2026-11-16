@@ -6,6 +6,7 @@ import { fetchJson } from "@/lib/http";
 import { PageHeader } from "./ui/page-header";
 import { CardHeading } from "./ui/card-heading";
 import { EmptyState } from "./ui/empty-state";
+import { SkeletonRows } from "./ui/skeleton";
 import { StatusPill } from "./ui/status-pill";
 import { Modal } from "./ui/modal";
 import { DialogActions } from "./ui/dialog-actions";
@@ -172,7 +173,13 @@ export default function AdminPackagesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pagedPackages.map((p) => (
+                  {loading && (
+                    <SkeletonRows
+                      cols={13}
+                      widths={["60%", "70%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "50%", "40%", "20%"]}
+                    />
+                  )}
+                  {!loading && pagedPackages.map((p) => (
                     <tr key={p.code}>
                       <td>
                         <strong>{p.code}</strong>
@@ -201,14 +208,12 @@ export default function AdminPackagesPage() {
                   ))}
                 </tbody>
               </table>
-              {!pagedPackages.length && (
+              {!loading && !pagedPackages.length && (
                 <EmptyState
                   icon={<Layers size={28} />}
                   title={
-                    loading
-                      ? "Loading packages…"
-                      : error
-                        ? "Unable to load packages"
+                    error
+                      ? "Unable to load packages"
                         : packages.length
                           ? "No packages match your filters"
                           : "No packages yet"

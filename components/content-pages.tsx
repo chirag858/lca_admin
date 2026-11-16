@@ -5,6 +5,7 @@ import { LogOut, Plus, RefreshCcw, Trash2 } from "lucide-react";
 import { fetchJson } from "@/lib/http";
 import { PageHeader } from "./ui/page-header";
 import { EmptyState } from "./ui/empty-state";
+import { Skeleton } from "./ui/skeleton";
 import { Toast } from "./ui/toast";
 import { useToast } from "@/lib/hooks/use-toast";
 
@@ -97,7 +98,24 @@ export default function ContentPages({ slug }: { slug: ContentPageSlug }) {
           />
 
           {loading ? (
-            <p className="text-muted">Loading content page…</p>
+            <section className="card content-editor">
+              <div className="catalogue-heading">
+                <div style={{ display: "grid", gap: 8 }}>
+                  <Skeleton width={160} height={15} />
+                  <Skeleton width={140} height={11} />
+                </div>
+              </div>
+              <div className="content-editor-body">
+                <div style={{ display: "grid", gap: 8 }}>
+                  <Skeleton width={90} height={11} />
+                  <Skeleton width="100%" height={38} radius={8} />
+                </div>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <Skeleton width={90} height={11} />
+                  <Skeleton width="100%" height={160} radius={8} />
+                </div>
+              </div>
+            </section>
           ) : error ? (
             <p className="form-alert" role="alert">
               {error}
