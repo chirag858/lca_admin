@@ -287,7 +287,7 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
     setDeleting(true);
     try {
       await fetchJson(`/api/tenants/${tenant.tenantId}`, { method: "DELETE" }, "Unable to delete tenant.");
-      router.replace("/");
+      router.replace("/tenants");
       router.refresh();
     } catch (err) {
       notify(err instanceof Error ? err.message : "Unable to delete tenant.");
@@ -329,7 +329,7 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
             pill={tenant?.isCustomOverride ? "Custom override" : undefined}
             description="Full tenant detail: plan, usage, companies, branches, and payment status."
             actions={
-              <button type="button" className="button" onClick={() => router.push("/")}>
+              <button type="button" className="button" onClick={() => router.push("/tenants")}>
                 <ArrowLeft size={16} /> Back to tenants
               </button>
             }
@@ -431,10 +431,25 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
 
               {activeTab === "overview" && (
                 <section className="card catalogue">
-                  <CardHeading title="Subscription & limits" text="Plan, limits, and renewal timeline." />
+                  <CardHeading title="Tenant details" text="Who this tenant is and how long they've been on the platform." />
                   <div className="form-grid" style={{ padding: "0 24px 24px" }}>
                     <label>
-                      <span>Source URL</span>
+                      <span>Tenant name</span>
+                      <p>{tenant.tenantName}</p>
+                    </label>
+                    <label>
+                      <span>Status</span>
+                      <p>
+                        <StatusPill on={tenant.isActive} />
+                        {tenant.isAccessBlocked && (
+                          <span className="pill" style={{ marginLeft: 8, background: "#ffe0db", color: "#c22d1a" }}>
+                            Access blocked
+                          </span>
+                        )}
+                      </p>
+                    </label>
+                    <label>
+                      <span>Website / source URL</span>
                       <p>
                         {tenant.sourceUrl ? (
                           <a href={tenant.sourceUrl} target="_blank" rel="noreferrer">
@@ -446,72 +461,28 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                       </p>
                     </label>
                     <label>
-                      <span>Plan</span>
+                      <span>Owner</span>
                       <p>
-                        {tenant.subscriptionPackage}
-                        {tenant.isCustomOverride && (
-                          <span className="pill" style={{ marginLeft: 8 }}>
-                            Custom override
-                          </span>
-                        )}
+                        {tenant.ownerFirstName || tenant.ownerLastName
+                          ? `${tenant.ownerFirstName ?? ""} ${tenant.ownerLastName ?? ""}`.trim()
+                          : "—"}
                       </p>
                     </label>
                     <label>
-                      <span>Monthly price</span>
-                      <p>
-                        {(() => {
-                          const pkg = packages.find((p) => p.code === tenant.subscriptionPackage);
-                          return pkg ? fmtMoney(pkg.monthlyPrice) : "—";
-                        })()}
-                      </p>
+                      <span>Owner email</span>
+                      <p>{tenant.ownerEmail}</p>
                     </label>
                     <label>
-                      <span>Max companies</span>
-                      <p>{fmtLimit(tenant.maxFirms)}</p>
-                    </label>
-                    <label>
-                      <span>Max staff / company</span>
-                      <p>{fmtLimit(tenant.maxStaffPerFirm)}</p>
-                    </label>
-                    <label>
-                      <span>Max staff total</span>
-                      <p>{fmtLimit(tenant.maxStaffTotal)}</p>
-                    </label>
-                    <label>
-                      <span>Max products</span>
-                      <p>{fmtLimit(tenant.maxProducts)}</p>
-                    </label>
-                    <label>
-                      <span>Max categories</span>
-                      <p>{fmtLimit(tenant.maxCategories)}</p>
-                    </label>
-                    <label>
-                      <span>Max category mappings</span>
-                      <p>{fmtLimit(tenant.maxCategoryMappings)}</p>
-                    </label>
-                    <label>
-                      <span>Max transport firms</span>
-                      <p>{fmtLimit(tenant.maxTransportFirms)}</p>
-                    </label>
-                    <label>
-                      <span>Max attributes</span>
-                      <p>{fmtLimit(tenant.maxAttributes)}</p>
+                      <span>Owner username</span>
+                      <p>{tenant.ownerUsername}</p>
                     </label>
                     <label>
                       <span>Tenant created</span>
                       <p>{fmtDate(tenant.createdAt)}</p>
                     </label>
                     <label>
-                      <span>Subscription renewal</span>
-                      <p>
-                        <CalendarClock size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
-                        {fmtShortDate(tenant.subscriptionExpiresAt)}
-                        {tenant.subscriptionExpiresAt && (
-                          <span className={tenant.isAccessBlocked ? "low" : "text-muted"} style={{ marginLeft: 8 }}>
-                            ({expiryText(tenant.subscriptionExpiresAt, tenant.isAccessBlocked)})
-                          </span>
-                        )}
-                      </p>
+                      <span>Tenure</span>
+                      <p>{tenureText(tenant.createdAt)}</p>
                     </label>
                   </div>
                 </section>
@@ -692,6 +663,76 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                       <label>
                         <span>Subscription {tenant.isAccessBlocked ? "expired" : "renews"}</span>
                         <p>{fmtDate(tenant.subscriptionExpiresAt)}</p>
+                      </label>
+                    </div>
+                  </section>
+
+                  <section className="card catalogue">
+                    <CardHeading title="Plan limits" text="Firm, staff, and catalog caps for this tenant's plan." />
+                    <div className="form-grid" style={{ padding: "0 24px 24px" }}>
+                      <label>
+                        <span>Plan</span>
+                        <p>
+                          {tenant.subscriptionPackage}
+                          {tenant.isCustomOverride && (
+                            <span className="pill" style={{ marginLeft: 8 }}>
+                              Custom override
+                            </span>
+                          )}
+                        </p>
+                      </label>
+                      <label>
+                        <span>Monthly price</span>
+                        <p>
+                          {(() => {
+                            const pkg = packages.find((p) => p.code === tenant.subscriptionPackage);
+                            return pkg ? fmtMoney(pkg.monthlyPrice) : "—";
+                          })()}
+                        </p>
+                      </label>
+                      <label>
+                        <span>Max companies</span>
+                        <p>{fmtLimit(tenant.maxFirms)}</p>
+                      </label>
+                      <label>
+                        <span>Max staff / company</span>
+                        <p>{fmtLimit(tenant.maxStaffPerFirm)}</p>
+                      </label>
+                      <label>
+                        <span>Max staff total</span>
+                        <p>{fmtLimit(tenant.maxStaffTotal)}</p>
+                      </label>
+                      <label>
+                        <span>Max products</span>
+                        <p>{fmtLimit(tenant.maxProducts)}</p>
+                      </label>
+                      <label>
+                        <span>Max categories</span>
+                        <p>{fmtLimit(tenant.maxCategories)}</p>
+                      </label>
+                      <label>
+                        <span>Max category mappings</span>
+                        <p>{fmtLimit(tenant.maxCategoryMappings)}</p>
+                      </label>
+                      <label>
+                        <span>Max transport firms</span>
+                        <p>{fmtLimit(tenant.maxTransportFirms)}</p>
+                      </label>
+                      <label>
+                        <span>Max attributes</span>
+                        <p>{fmtLimit(tenant.maxAttributes)}</p>
+                      </label>
+                      <label>
+                        <span>Subscription renewal</span>
+                        <p>
+                          <CalendarClock size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
+                          {fmtShortDate(tenant.subscriptionExpiresAt)}
+                          {tenant.subscriptionExpiresAt && (
+                            <span className={tenant.isAccessBlocked ? "low" : "text-muted"} style={{ marginLeft: 8 }}>
+                              ({expiryText(tenant.subscriptionExpiresAt, tenant.isAccessBlocked)})
+                            </span>
+                          )}
+                        </p>
                       </label>
                     </div>
                   </section>

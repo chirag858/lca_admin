@@ -3,6 +3,6 @@ import { isAuthenticated } from "@/lib/auth";
 import Login from "@/components/login";
 
 export default async function Page() {
-  if (await isAuthenticated()) redirect("/");
+  if (await isAuthenticated()) redirect("/tenants");
   return <Login />;
 }

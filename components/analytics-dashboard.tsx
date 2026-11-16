@@ -2,13 +2,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Building2, Users, IndianRupee, ShieldAlert, ShieldCheck, RefreshCcw, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { fetchJson } from "@/lib/http";
 import { PageHeader } from "./ui/page-header";
 import { CardHeading } from "./ui/card-heading";
 import { EmptyState } from "./ui/empty-state";
 import { Skeleton, SkeletonChartCard } from "./ui/skeleton";
 import { StatusPill } from "./ui/status-pill";
+import { TenantCell } from "./ui/tenant-cell";
 import { RangeSelect, rangeCutoff, type AnalyticsRange } from "./ui/range-select";
 
 type SubscriptionPackage = {
@@ -387,9 +387,8 @@ export default function AnalyticsDashboard() {
 
       {!loading && !error && recentTenants.length > 0 && (
         <section className="card catalogue">
+          <CardHeading title="Recently onboarded tenants" count={`${recentTenants.length} shown`} text="Latest tenants with plan, usage and billing at a glance." />
           <div className="table-scroll">
-           <CardHeading title="Recently onboarded tenants" count={`${recentTenants.length} shown`} text="Latest tenants with plan, usage and billing at a glance." />
-
             <table>
               <thead>
                 <tr>
@@ -405,16 +404,18 @@ export default function AnalyticsDashboard() {
                 {recentTenants.map((t) => (
                   <tr key={t.tenantId}>
                     <td>
-                      <Link href={`/tenants/${t.tenantId}`} className="link-strong">
-                        <strong>{t.tenantName}</strong>
-                      </Link>
+                      <TenantCell tenantId={t.tenantId} tenantName={t.tenantName} subtext={t.ownerEmail} />
                     </td>
                     <td>{t.subscriptionPackage}</td>
                     <td>
-                      {t.firmsUsed}/{t.maxFirms ?? "∞"}
+                      <span className={`usage-pill usage-${t.maxFirms !== null && t.firmsUsed >= t.maxFirms ? "red" : "green"}`}>
+                        {t.firmsUsed}/{t.maxFirms ?? "∞"}
+                      </span>
                     </td>
                     <td>
-                      {t.staffUsed}/{t.maxStaffTotal ?? "∞"}
+                      <span className={`usage-pill usage-${t.maxStaffTotal !== null && t.staffUsed >= t.maxStaffTotal ? "red" : "green"}`}>
+                        {t.staffUsed}/{t.maxStaffTotal ?? "∞"}
+                      </span>
                     </td>
                     <td>
                       <StatusPill on={t.isActive} />

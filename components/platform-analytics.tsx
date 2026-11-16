@@ -8,6 +8,7 @@ import { PageHeader } from "./ui/page-header";
 import { CardHeading } from "./ui/card-heading";
 import { EmptyState } from "./ui/empty-state";
 import { Skeleton, SkeletonChartCard } from "./ui/skeleton";
+import { TenantCell } from "./ui/tenant-cell";
 import { RangeSelect, rangeCutoff, type AnalyticsRange } from "./ui/range-select";
 
 type SubscriptionPackage = {
@@ -634,19 +635,20 @@ export default function PlatformAnalytics() {
                       {pendingLinkTenants.map((t) => (
                         <tr key={t.tenantId}>
                           <td>
-                            <NextLink href={`/tenants/${t.tenantId}`} className="link-strong">
-                              <strong>{t.tenantName}</strong>
-                            </NextLink>
+                            <TenantCell tenantId={t.tenantId} tenantName={t.tenantName} />
                           </td>
                           <td>{t.subscriptionPackage}</td>
-                          <td>{t.paymentAmount !== null ? `₹${t.paymentAmount.toLocaleString("en-IN")}` : "—"}</td>
+                          <td>
+                            <strong>{t.paymentAmount !== null ? `₹${t.paymentAmount.toLocaleString("en-IN")}` : "—"}</strong>
+                          </td>
                           <td>
                             {t.paymentLinkUrl ? (
-                              <a href={t.paymentLinkUrl} target="_blank" rel="noreferrer">
+                              <a href={t.paymentLinkUrl} target="_blank" rel="noreferrer" className="link-strong">
+                                <Link2 size={13} style={{ verticalAlign: -2, marginRight: 5 }} />
                                 Open link
                               </a>
                             ) : (
-                              "—"
+                              <span className="usage-pill usage-amber">Pending</span>
                             )}
                           </td>
                         </tr>

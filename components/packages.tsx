@@ -157,7 +157,6 @@ export default function AdminPackagesPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>CODE</th>
                     <th>DISPLAY NAME</th>
                     <th>MAX FIRMS</th>
                     <th>MAX STAFF / FIRM</th>
@@ -175,15 +174,12 @@ export default function AdminPackagesPage() {
                 <tbody>
                   {loading && (
                     <SkeletonRows
-                      cols={13}
-                      widths={["60%", "70%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "50%", "40%", "20%"]}
+                      cols={12}
+                      widths={["70%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "50%", "40%", "20%"]}
                     />
                   )}
                   {!loading && pagedPackages.map((p) => (
                     <tr key={p.code}>
-                      <td>
-                        <strong>{p.code}</strong>
-                      </td>
                       <td>{p.displayName}</td>
                       <td>{fmtLimit(p.defaultMaxFirms)}</td>
                       <td>{fmtLimit(p.defaultMaxStaffPerFirm)}</td>

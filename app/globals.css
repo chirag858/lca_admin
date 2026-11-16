@@ -1011,6 +1011,9 @@ h1 {
 .catalogue {
   overflow: hidden;
 }
+.content > .catalogue + .catalogue {
+  margin-top: 22px;
+}
 .catalogue-heading {
   padding: 24px;
   display: flex;
@@ -1053,6 +1056,8 @@ h1 {
   display: flex;
   gap: 11px;
   padding: 0 24px 21px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
 }
 .range-select {
   display: inline-flex;
@@ -1316,6 +1321,55 @@ tbody tr:hover {
 .permission-action-heading {
   text-align: center;
   border-left: 1px solid var(--border);
+}
+.tenant-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  max-width: 280px;
+}
+.tenant-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  box-shadow: 0 3px 8px -2px rgba(34, 48, 62, 0.35);
+}
+.tenant-cell-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tenant-cell-copy strong {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--heading);
+  transition: color 0.15s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tenant-cell:hover .tenant-cell-copy strong {
+  color: var(--primary);
+}
+.tenant-cell-copy small {
+  color: var(--muted);
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.data-table tbody tr:hover,
+table tbody tr:hover {
+  background: #fafaff;
 }
 .product-cell {
   display: flex;
@@ -2354,11 +2408,16 @@ label textarea {
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: 14px 20px;
+  margin-bottom: 14px;
 }
 .form-grid label {
   margin: 0;
+}
+.form-grid label input,
+.form-grid label select,
+.form-grid label textarea {
+  margin-top: 6px;
 }
 .link-strong {
   color: inherit;

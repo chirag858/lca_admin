@@ -33,7 +33,7 @@ export default function AdminLogin() {
         body: JSON.stringify(Object.fromEntries(data)),
       });
       if (response.ok) {
-        router.replace("/");
+        router.replace("/tenants");
         router.refresh();
       } else {
         const data = await response.json().catch(() => null);

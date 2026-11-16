@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   Building2,
   LogOut,
@@ -19,6 +18,7 @@ import { PageHeader } from "./ui/page-header";
 import { CardHeading } from "./ui/card-heading";
 import { EmptyState } from "./ui/empty-state";
 import { Skeleton, SkeletonRows } from "./ui/skeleton";
+import { TenantCell } from "./ui/tenant-cell";
 import { StatusPill } from "./ui/status-pill";
 import { Modal } from "./ui/modal";
 import { DialogActions } from "./ui/dialog-actions";
@@ -113,6 +113,7 @@ function fmtDate(value: string | null) {
   if (!value) return null;
   return new Date(value).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
+
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -366,9 +367,7 @@ export default function AdminDashboard() {
                   {!loading && pagedTenants.map((t) => (
                     <tr key={t.tenantId}>
                       <td>
-                        <Link href={`/tenants/${t.tenantId}`} className="link-strong">
-                          <strong>{t.tenantName}</strong>
-                        </Link>
+                        <TenantCell tenantId={t.tenantId} tenantName={t.tenantName} subtext={t.ownerEmail} />
                       </td>
                       <td>
                         {t.subscriptionPackage}
@@ -683,6 +682,7 @@ function CreateTenantModal({
             <input
               maxLength={200}
               autoComplete="off"
+              placeholder="e.g. Acme Retail Pvt Ltd"
               value={tenantName}
               aria-invalid={!!fieldErrors.tenantName}
               onChange={(e) => {
@@ -727,6 +727,7 @@ function CreateTenantModal({
               <input
                 type="number"
                 min={0}
+                placeholder="e.g. 5"
                 value={maxFirms}
                 aria-invalid={!!fieldErrors.maxFirms}
                 onChange={(e) => setMaxFirms(e.target.value)}
@@ -739,6 +740,7 @@ function CreateTenantModal({
               <input
                 type="number"
                 min={0}
+                placeholder="e.g. 10"
                 value={maxStaffPerFirm}
                 aria-invalid={!!fieldErrors.maxStaffPerFirm}
                 onChange={(e) => setMaxStaffPerFirm(e.target.value)}
@@ -751,6 +753,7 @@ function CreateTenantModal({
               <input
                 type="number"
                 min={0}
+                placeholder="e.g. 50"
                 value={maxStaffTotal}
                 aria-invalid={!!fieldErrors.maxStaffTotal}
                 onChange={(e) => setMaxStaffTotal(e.target.value)}
@@ -765,17 +768,17 @@ function CreateTenantModal({
           <div className="form-grid">
             <label>
               <span>Max products</span>
-              <input type="number" min={0} value={maxProducts} onChange={(e) => setMaxProducts(e.target.value)} />
+              <input type="number" min={0} placeholder="e.g. 500" value={maxProducts} onChange={(e) => setMaxProducts(e.target.value)} />
               {isOverridden(selectedPackage, "maxProducts", maxProducts) && <small className="pill">Custom override</small>}
             </label>
             <label>
               <span>Max categories</span>
-              <input type="number" min={0} value={maxCategories} onChange={(e) => setMaxCategories(e.target.value)} />
+              <input type="number" min={0} placeholder="e.g. 20" value={maxCategories} onChange={(e) => setMaxCategories(e.target.value)} />
               {isOverridden(selectedPackage, "maxCategories", maxCategories) && <small className="pill">Custom override</small>}
             </label>
             <label>
               <span>Max category mappings</span>
-              <input type="number" min={0} value={maxCategoryMappings} onChange={(e) => setMaxCategoryMappings(e.target.value)} />
+              <input type="number" min={0} placeholder="e.g. 50" value={maxCategoryMappings} onChange={(e) => setMaxCategoryMappings(e.target.value)} />
               {isOverridden(selectedPackage, "maxCategoryMappings", maxCategoryMappings) && <small className="pill">Custom override</small>}
             </label>
           </div>
@@ -785,12 +788,12 @@ function CreateTenantModal({
           <div className="form-grid">
             <label>
               <span>Max transport firms</span>
-              <input type="number" min={0} value={maxTransportFirms} onChange={(e) => setMaxTransportFirms(e.target.value)} />
+              <input type="number" min={0} placeholder="e.g. 5" value={maxTransportFirms} onChange={(e) => setMaxTransportFirms(e.target.value)} />
               {isOverridden(selectedPackage, "maxTransportFirms", maxTransportFirms) && <small className="pill">Custom override</small>}
             </label>
             <label>
               <span>Max attributes</span>
-              <input type="number" min={0} value={maxAttributes} onChange={(e) => setMaxAttributes(e.target.value)} />
+              <input type="number" min={0} placeholder="e.g. 20" value={maxAttributes} onChange={(e) => setMaxAttributes(e.target.value)} />
               {isOverridden(selectedPackage, "maxAttributes", maxAttributes) && <small className="pill">Custom override</small>}
             </label>
           </div>
@@ -811,6 +814,7 @@ function CreateTenantModal({
                 type="number"
                 min={0}
                 step="0.01"
+                placeholder="e.g. 999.00"
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
               />
@@ -832,6 +836,7 @@ function CreateTenantModal({
             <input
               maxLength={100}
               autoComplete="off"
+              placeholder="e.g. acme_admin"
               value={ownerUsername}
               aria-invalid={!!fieldErrors.ownerUsername}
               onChange={(e) => {
@@ -847,6 +852,7 @@ function CreateTenantModal({
               type="email"
               maxLength={256}
               autoComplete="off"
+              placeholder="owner@company.com"
               value={ownerEmail}
               aria-invalid={!!fieldErrors.ownerEmail}
               onChange={(e) => {
@@ -860,11 +866,11 @@ function CreateTenantModal({
         <div className="form-grid">
           <label>
             <span>Owner first name</span>
-            <input autoComplete="off" value={ownerFirstName} onChange={(e) => setOwnerFirstName(e.target.value)} />
+            <input autoComplete="off" placeholder="e.g. Priya" value={ownerFirstName} onChange={(e) => setOwnerFirstName(e.target.value)} />
           </label>
           <label>
             <span>Owner last name</span>
-            <input autoComplete="off" value={ownerLastName} onChange={(e) => setOwnerLastName(e.target.value)} />
+            <input autoComplete="off" placeholder="e.g. Sharma" value={ownerLastName} onChange={(e) => setOwnerLastName(e.target.value)} />
           </label>
         </div>
         <div className="form-grid">
@@ -875,6 +881,7 @@ function CreateTenantModal({
                 type={showPassword ? "text" : "password"}
                 maxLength={1024}
                 autoComplete="new-password"
+                placeholder="Minimum 8 characters"
                 value={ownerPassword}
                 aria-invalid={!!fieldErrors.ownerPassword}
                 onChange={(e) => {
