@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, LogOut, Plus, RefreshCcw, Trash2 } from "lucide-react";
+import { LogOut, Plus, RefreshCcw, Trash2 } from "lucide-react";
 import { fetchJson } from "@/lib/http";
 import { PageHeader } from "./ui/page-header";
+import { EmptyState } from "./ui/empty-state";
 import { Toast } from "./ui/toast";
 import { useToast } from "@/lib/hooks/use-toast";
 
@@ -11,7 +12,8 @@ type SitePage = { slug: string; title: string; content: string; updatedAt: strin
 
 type Faq = { question: string; answer: string };
 
-const PAGE_ORDER = ["terms-and-conditions", "privacy-policy", "about-us", "contact-us", "faqs"];
+export const CONTENT_PAGE_SLUGS = ["terms-and-conditions", "privacy-policy", "about-us", "contact-us", "faqs"] as const;
+export type ContentPageSlug = (typeof CONTENT_PAGE_SLUGS)[number];
 
 function parseFaqs(content: string): Faq[] {
   try {
@@ -29,13 +31,12 @@ function fmtDate(value: string) {
   return new Date(value).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
-export default function ContentPages() {
+export default function ContentPages({ slug }: { slug: ContentPageSlug }) {
   const router = useRouter();
   const [pages, setPages] = useState<SitePage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
-  const [activeSlug, setActiveSlug] = useState<string>("terms-and-conditions");
   const { toast, show: notify, dismiss: dismissToast } = useToast();
 
   useEffect(() => {
@@ -70,8 +71,7 @@ export default function ContentPages() {
     }
   }
 
-  const sorted = [...pages].sort((a, b) => PAGE_ORDER.indexOf(a.slug) - PAGE_ORDER.indexOf(b.slug));
-  const active = sorted.find((p) => p.slug === activeSlug) ?? sorted[0];
+  const active = pages.find((p) => p.slug === slug);
 
   return (
     <>
@@ -91,44 +91,28 @@ export default function ContentPages() {
         </header>
         <main className="content">
           <PageHeader
-            trail="Admin"
-            title="Content Pages"
-            description="Edit the terms, privacy, about, contact and FAQ content shown on the public site."
+            trail="Content Pages"
+            title={active?.title ?? "Content Page"}
+            description="Edit the content shown on the public site."
           />
 
           {loading ? (
-            <p className="text-muted">Loading content pages…</p>
+            <p className="text-muted">Loading content page…</p>
           ) : error ? (
             <p className="form-alert" role="alert">
               {error}
             </p>
+          ) : active ? (
+            <PageEditor
+              key={active.slug}
+              page={active}
+              onSaved={(updated) => {
+                setPages((prev) => prev.map((p) => (p.slug === updated.slug ? updated : p)));
+                notify(`"${updated.title}" was saved.`);
+              }}
+            />
           ) : (
-            <div className="content-pages-layout">
-              <nav className="card content-pages-nav" aria-label="Content pages">
-                {sorted.map((p) => (
-                  <button
-                    key={p.slug}
-                    type="button"
-                    className={"content-pages-nav-item " + (p.slug === active?.slug ? "active" : "")}
-                    onClick={() => setActiveSlug(p.slug)}
-                  >
-                    <FileText size={16} />
-                    <span>{p.title}</span>
-                  </button>
-                ))}
-              </nav>
-
-              {active && (
-                <PageEditor
-                  key={active.slug}
-                  page={active}
-                  onSaved={(updated) => {
-                    setPages((prev) => prev.map((p) => (p.slug === updated.slug ? updated : p)));
-                    notify(`"${updated.title}" was saved.`);
-                  }}
-                />
-              )}
-            </div>
+            <EmptyState icon={<RefreshCcw size={28} />} title="Page not found" text="This content page hasn't been created on the backend yet." />
           )}
         </main>
       </div>
