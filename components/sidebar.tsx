@@ -1,13 +1,14 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck, Layers } from "lucide-react";
+import { ShieldCheck, Layers, FileText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Brand from "./brand";
 
 const menu: { label: string; href: string; icon: LucideIcon }[] = [
   { label: "Tenants & Subscriptions", href: "/", icon: ShieldCheck },
   { label: "Subscription Packages", href: "/packages", icon: Layers },
+  { label: "Content Pages", href: "/content", icon: FileText },
 ];
 
 export default function AdminSidebar() {

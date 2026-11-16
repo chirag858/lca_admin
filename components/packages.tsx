@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Layers, LogOut, Plus, Pencil, RefreshCcw } from "lucide-react";
 import { fetchJson } from "@/lib/http";
@@ -11,6 +11,11 @@ import { Modal } from "./ui/modal";
 import { DialogActions } from "./ui/dialog-actions";
 import { Toast } from "./ui/toast";
 import { useToast } from "@/lib/hooks/use-toast";
+import { SearchInput } from "./ui/search-input";
+import { Select } from "./select";
+import { Pagination } from "./ui/pagination";
+
+const PAGE_SIZE = 10;
 
 type Package = {
   code: string;
@@ -42,6 +47,10 @@ export default function AdminPackagesPage() {
   const [editing, setEditing] = useState<Package | null>(null);
   const { toast, show: notify, dismiss: dismissToast } = useToast();
 
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+
   useEffect(() => {
     const controller = new AbortController();
     async function load() {
@@ -64,6 +73,23 @@ export default function AdminPackagesPage() {
     void load();
     return () => controller.abort();
   }, [retry]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
+
+  const filteredPackages = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return packages.filter((p) => {
+      if (statusFilter === "active" && !p.isActive) return false;
+      if (statusFilter === "retired" && p.isActive) return false;
+      if (q && !p.code.toLowerCase().includes(q) && !p.displayName.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [packages, search, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPackages.length / PAGE_SIZE));
+  const pagedPackages = filteredPackages.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   async function logout() {
     try {
@@ -105,10 +131,28 @@ export default function AdminPackagesPage() {
           <section className="card catalogue">
             <CardHeading
               title="Packages"
-              count={`${packages.length} packages`}
+              count={`${filteredPackages.length} of ${packages.length} packages`}
               text="Active packages appear in the Add Tenant dropdown; retired ones stay here for existing tenants."
             />
-            <div className="table-scroll">
+            <div className="filters">
+              <SearchInput
+                value={search}
+                onChange={setSearch}
+                label="Search packages"
+                placeholder="Search by code or display name…"
+              />
+              <Select
+                ariaLabel="Filter by status"
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={[
+                  { value: "all", label: "All statuses" },
+                  { value: "active", label: "Active" },
+                  { value: "retired", label: "Retired" },
+                ]}
+              />
+            </div>
+            <div className="table-scroll sticky-cols">
               <table>
                 <thead>
                   <tr>
@@ -128,7 +172,7 @@ export default function AdminPackagesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {packages.map((p) => (
+                  {pagedPackages.map((p) => (
                     <tr key={p.code}>
                       <td>
                         <strong>{p.code}</strong>
@@ -157,11 +201,23 @@ export default function AdminPackagesPage() {
                   ))}
                 </tbody>
               </table>
-              {!packages.length && (
+              {!pagedPackages.length && (
                 <EmptyState
                   icon={<Layers size={28} />}
-                  title={loading ? "Loading packages…" : error ? "Unable to load packages" : "No packages yet"}
-                  text={<span role={error ? "alert" : "status"}>{error || "Add your first subscription package."}</span>}
+                  title={
+                    loading
+                      ? "Loading packages…"
+                      : error
+                        ? "Unable to load packages"
+                        : packages.length
+                          ? "No packages match your filters"
+                          : "No packages yet"
+                  }
+                  text={
+                    <span role={error ? "alert" : "status"}>
+                      {error || (packages.length ? "Try a different search or status filter." : "Add your first subscription package.")}
+                    </span>
+                  }
                   action={
                     error ? (
                       <button type="button" className="button" onClick={() => setRetry((n) => n + 1)}>
@@ -172,6 +228,7 @@ export default function AdminPackagesPage() {
                 />
               )}
             </div>
+            <Pagination page={page} pages={totalPages} onPageChange={setPage} />
           </section>
         </main>
       </div>
@@ -382,7 +439,7 @@ function CreatePackageModal({
           </label>
         </div>
         {!!error && (
-          <p className="low" role="alert">
+          <p className="form-alert" role="alert">
             {error}
           </p>
         )}
@@ -532,7 +589,7 @@ function EditPackageModal({
           <input className="checkbox" type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> Active (shown in the Add Tenant dropdown)
         </label>
         {!!error && (
-          <p className="low" role="alert">
+          <p className="form-alert" role="alert">
             {error}
           </p>
         )}

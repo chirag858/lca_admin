@@ -294,14 +294,14 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                     <h2>
                       <StatusPill on={tenant.isActive} />
                     </h2>
-                    <small className="low">{tenureText(tenant.createdAt)}</small>
+                    <small className="text-muted">{tenureText(tenant.createdAt)}</small>
                   </div>
                 </article>
                 <article className="card stat">
                   <div>
                     <span>Plan</span>
                     <h2 style={{ fontSize: 20 }}>{tenant.subscriptionPackage}</h2>
-                    <small className="low">{expiryText(tenant.subscriptionExpiresAt, tenant.isAccessBlocked)}</small>
+                    <small className={tenant.isAccessBlocked ? "low" : "text-muted"}>{expiryText(tenant.subscriptionExpiresAt, tenant.isAccessBlocked)}</small>
                   </div>
                 </article>
                 <article className="card stat">
@@ -401,7 +401,7 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                       <CalendarClock size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
                       {fmtShortDate(tenant.subscriptionExpiresAt)}
                       {tenant.subscriptionExpiresAt && (
-                        <span className="low" style={{ marginLeft: 8 }}>
+                        <span className={tenant.isAccessBlocked ? "low" : "text-muted"} style={{ marginLeft: 8 }}>
                           ({expiryText(tenant.subscriptionExpiresAt, tenant.isAccessBlocked)})
                         </span>
                       )}

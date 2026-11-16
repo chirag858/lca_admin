@@ -24,6 +24,10 @@ import { DialogActions } from "./ui/dialog-actions";
 import { Select } from "./select";
 import { Toast } from "./ui/toast";
 import { useToast } from "@/lib/hooks/use-toast";
+import { SearchInput } from "./ui/search-input";
+import { Pagination } from "./ui/pagination";
+
+const PAGE_SIZE = 10;
 
 type SubscriptionPackage = {
   code: string;
@@ -119,6 +123,12 @@ export default function AdminDashboard() {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<TenantUsage | null>(null);
   const { toast, show: notify, dismiss: dismissToast } = useToast();
+
+  const [search, setSearch] = useState("");
+  const [planFilter, setPlanFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [paymentFilter, setPaymentFilter] = useState("all");
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -220,6 +230,31 @@ export default function AdminDashboard() {
     [tenants],
   );
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, planFilter, statusFilter, paymentFilter]);
+
+  const filteredTenants = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return tenants.filter((t) => {
+      if (planFilter !== "all" && t.subscriptionPackage !== planFilter) return false;
+      if (statusFilter === "active" && !t.isActive) return false;
+      if (statusFilter === "inactive" && t.isActive) return false;
+      if (paymentFilter !== "all" && t.paymentStatus !== paymentFilter) return false;
+      if (
+        q &&
+        !t.tenantName.toLowerCase().includes(q) &&
+        !t.ownerUsername.toLowerCase().includes(q) &&
+        !t.ownerEmail.toLowerCase().includes(q)
+      )
+        return false;
+      return true;
+    });
+  }, [tenants, search, planFilter, statusFilter, paymentFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTenants.length / PAGE_SIZE));
+  const pagedTenants = filteredTenants.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <>
       <div className="main-shell">
@@ -268,7 +303,50 @@ export default function AdminDashboard() {
           </section>
 
           <section className="card catalogue">
-            <CardHeading title="Tenants" count={`${tenants.length} tenants`} text="Every onboarded tenant and its current plan." />
+            <CardHeading
+              title="Tenants"
+              count={`${filteredTenants.length} of ${tenants.length} tenants`}
+              text="Every onboarded tenant and its current plan."
+            />
+            <div className="filters">
+              <SearchInput
+                value={search}
+                onChange={setSearch}
+                label="Search tenants"
+                placeholder="Search by tenant, owner username or email…"
+              />
+              <Select
+                ariaLabel="Filter by plan"
+                value={planFilter}
+                onChange={setPlanFilter}
+                options={[
+                  { value: "all", label: "All plans" },
+                  ...packages.map((p) => ({ value: p.code, label: p.displayName })),
+                ]}
+              />
+              <Select
+                ariaLabel="Filter by status"
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={[
+                  { value: "all", label: "All statuses" },
+                  { value: "active", label: "Active" },
+                  { value: "inactive", label: "Inactive" },
+                ]}
+              />
+              <Select
+                ariaLabel="Filter by payment status"
+                value={paymentFilter}
+                onChange={setPaymentFilter}
+                options={[
+                  { value: "all", label: "All payments" },
+                  { value: "Paid", label: "Paid" },
+                  { value: "Pending", label: "Pending" },
+                  { value: "Failed", label: "Failed" },
+                  { value: "Cancelled", label: "Cancelled" },
+                ]}
+              />
+            </div>
             <div className="table-scroll">
               <table>
                 <thead>
@@ -283,7 +361,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tenants.map((t) => (
+                  {pagedTenants.map((t) => (
                     <tr key={t.tenantId}>
                       <td>
                         <Link href={`/tenants/${t.tenantId}`} className="link-strong">
@@ -306,12 +384,12 @@ export default function AdminDashboard() {
                       <td>
                         <PaymentStatusPill status={t.paymentStatus} isAccessBlocked={t.isAccessBlocked} />
                         {t.paymentAmount !== null && (
-                          <div className="low" style={{ marginTop: 2 }}>
+                          <div className="text-muted" style={{ marginTop: 2 }}>
                             ₹{t.paymentAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                           </div>
                         )}
                         {t.subscriptionExpiresAt && (
-                          <div className="low" style={{ marginTop: 2 }}>
+                          <div className={t.isAccessBlocked ? "low" : "text-muted"} style={{ marginTop: 2 }}>
                             {t.isAccessBlocked ? "Expired " : "Renews "}
                             {fmtDate(t.subscriptionExpiresAt)}
                           </div>
@@ -350,11 +428,23 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
-              {!tenants.length && (
+              {!pagedTenants.length && (
                 <EmptyState
                   icon={<Building2 size={28} />}
-                  title={loading ? "Loading tenants…" : error ? "Unable to load tenants" : "No tenants yet"}
-                  text={<span role={error ? "alert" : "status"}>{error || "Create your first tenant to get started."}</span>}
+                  title={
+                    loading
+                      ? "Loading tenants…"
+                      : error
+                        ? "Unable to load tenants"
+                        : tenants.length
+                          ? "No tenants match your filters"
+                          : "No tenants yet"
+                  }
+                  text={
+                    <span role={error ? "alert" : "status"}>
+                      {error || (tenants.length ? "Try a different search or filter." : "Create your first tenant to get started.")}
+                    </span>
+                  }
                   action={
                     error ? (
                       <button type="button" className="button" onClick={() => setRetry((n) => n + 1)}>
@@ -365,6 +455,7 @@ export default function AdminDashboard() {
                 />
               )}
             </div>
+            <Pagination page={page} pages={totalPages} onPageChange={setPage} />
           </section>
         </main>
       </div>
@@ -706,7 +797,7 @@ function CreateTenantModal({
         )}
 
         {subscriptionPackage && (
-          <p role="status" className="low">
+          <p role="status" className="text-muted">
             This tenant can create up to <strong>{maxFirms || "∞"}</strong> firms, each with up to{" "}
             <strong>{maxStaffPerFirm || "∞"}</strong> staff, and <strong>{maxStaffTotal || "∞"}</strong> staff in total.
           </p>
@@ -727,12 +818,12 @@ function CreateTenantModal({
           </div>
         )}
         {subscriptionPackage && Number(paymentAmount) > 0 && (
-          <p className="low">
+          <p className="text-muted">
             A Razorpay payment link for ₹{paymentAmount} will be emailed to the owner along with their login credentials.
           </p>
         )}
         {subscriptionPackage && Number(paymentAmount) === 0 && (
-          <p className="low">No payment link will be created (amount is ₹0) — only the welcome email with login credentials is sent.</p>
+          <p className="text-muted">No payment link will be created (amount is ₹0) — only the welcome email with login credentials is sent.</p>
         )}
 
         <div className="form-grid">
@@ -803,7 +894,7 @@ function CreateTenantModal({
           </label>
         </div>
         {!!error && (
-          <p className="low" role="alert">
+          <p className="form-alert" role="alert">
             {error}
           </p>
         )}
@@ -942,7 +1033,7 @@ function EditLimitsModal({
   return (
     <Modal open={!!tenant} onClose={onClose} titleId="edit-tenant-title" title={`Edit tenant — ${tenant.tenantName}`} className="dialog-wide">
       <form onSubmit={submit} noValidate>
-        <p className="low">
+        <p className="text-muted">
           Current usage: <strong>{tenant.firmsUsed}</strong> firms, <strong>{tenant.staffUsed}</strong> staff.
         </p>
 
@@ -1102,7 +1193,7 @@ function EditLimitsModal({
           Allow over-limit (grace period) — force downgrade even if current usage exceeds the new limits
         </label>
         {!!error && (
-          <p className="low" role="alert">
+          <p className="form-alert" role="alert">
             {error}
           </p>
         )}

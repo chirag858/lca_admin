@@ -1014,6 +1014,30 @@ h1 {
 .table-scroll {
   overflow-x: auto;
 }
+.table-scroll.sticky-cols table th:first-child,
+.table-scroll.sticky-cols table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+  box-shadow: 1px 0 0 0 var(--border);
+}
+.table-scroll.sticky-cols table th:first-child {
+  background: #fafafc;
+  z-index: 2;
+}
+.table-scroll.sticky-cols table th:last-child,
+.table-scroll.sticky-cols table td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background: #fff;
+  box-shadow: -1px 0 0 0 var(--border);
+}
+.table-scroll.sticky-cols table th:last-child {
+  background: #fafafc;
+  z-index: 2;
+}
 table {
   border-collapse: collapse;
   width: 100%;
@@ -1122,6 +1146,14 @@ td strong {
 .out {
   color: #dc6f77 !important;
 }
+.text-muted {
+  color: var(--muted);
+}
+.form-alert {
+  color: var(--danger);
+  font-size: 13px;
+  margin: 0 0 4px;
+}
 .price {
   font-size: 11px;
   font-weight: 500;
@@ -1208,6 +1240,89 @@ td strong {
   gap: 14px;
   padding: 16px;
   margin-bottom: 18px;
+}
+.filters {
+  flex-wrap: wrap;
+}
+.content-pages-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.content-pages-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  gap: 2px;
+}
+.content-pages-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--text);
+  text-align: left;
+  background: transparent;
+}
+.content-pages-nav-item:hover {
+  background: #f5f5f9;
+}
+.content-pages-nav-item.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 500;
+}
+.content-editor-body {
+  padding: 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.content-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.faq-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.faq-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.faq-row-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.faq-row > button {
+  color: var(--muted);
+  padding: 6px;
+  border-radius: var(--radius);
+  margin-top: 22px;
+}
+.faq-row > button:hover {
+  color: var(--danger);
+  background: #ffe0db;
+}
+@media (max-width: 900px) {
+  .content-pages-layout {
+    grid-template-columns: 1fr;
+  }
+  .content-pages-nav {
+    flex-direction: row;
+    overflow-x: auto;
+  }
 }
 .orders-toolbar .search-input { flex: 1; max-width: 420px; }
 .orders-toolbar .select { min-width: 150px; }
@@ -2483,6 +2598,7 @@ label textarea {
     font-size: 8px;
   }
   .stats {
+    grid-template-columns: repeat(2, 1fr);
     gap: 12px;
   }
   .icon-tile {
