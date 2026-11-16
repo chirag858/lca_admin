@@ -1,14 +1,20 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Building2,
   CalendarClock,
+  ChevronDown,
+  ChevronRight,
   CreditCard,
+  LayoutGrid,
   LogOut,
+  MapPin,
   RefreshCcw,
+  Shield,
   Trash2,
+  User as UserIcon,
   Users,
 } from "lucide-react";
 import { fetchJson } from "@/lib/http";
@@ -22,12 +28,42 @@ import { useToast } from "@/lib/hooks/use-toast";
 
 type PaymentStatus = "Pending" | "Paid" | "Failed" | "Cancelled";
 
+type Branch = {
+  branchId: number;
+  branchName: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  contactNumber: string | null;
+  isActive: boolean;
+  createdAt: string;
+};
+
 type Firm = {
   firmId: number;
   firmName: string;
   maxEmployees: number;
   employeesUsed: number;
   isActive: boolean;
+  createdAt: string;
+  gstNumber: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  contactNumber: string | null;
+  email: string | null;
+  branches: Branch[];
+};
+
+type PaymentHistoryEntry = {
+  paymentHistoryId: number;
+  subscriptionPackage: string;
+  amount: number | null;
+  status: PaymentStatus;
+  razorpayPaymentId: string | null;
+  razorpayPaymentLinkId: string | null;
+  subscriptionExpiresAt: string | null;
+  note: string | null;
   createdAt: string;
 };
 
@@ -61,6 +97,7 @@ type TenantDetail = {
   subscriptionExpiresAt: string | null;
   isAccessBlocked: boolean;
   firms: Firm[];
+  paymentHistory: PaymentHistoryEntry[];
 };
 
 function fmtLimit(value: number | null) {
@@ -124,6 +161,11 @@ function expiryText(expiresAt: string | null, blocked: boolean) {
   return `Renews in ${days} day${days === 1 ? "" : "s"}`;
 }
 
+function cityState(city: string | null, state: string | null) {
+  if (!city && !state) return "—";
+  return [city, state].filter(Boolean).join(", ");
+}
+
 function UsageBar({ used, max }: { used: number; max: number | null }) {
   const pct = max && max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0;
   const tone = pct >= 100 ? "var(--danger)" : pct >= 75 ? "var(--warning)" : "var(--success)";
@@ -133,6 +175,16 @@ function UsageBar({ used, max }: { used: number; max: number | null }) {
     </div>
   );
 }
+
+const TABS = [
+  { key: "overview", label: "Overview", icon: LayoutGrid },
+  { key: "companies", label: "Companies & Branches", icon: Building2 },
+  { key: "payment", label: "Payment & Subscription", icon: CreditCard },
+  { key: "owner", label: "Owner", icon: UserIcon },
+  { key: "danger", label: "Danger zone", icon: Shield },
+] as const;
+
+type TabKey = (typeof TABS)[number]["key"];
 
 export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
   const router = useRouter();
@@ -145,6 +197,8 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
   const [markingPaid, setMarkingPaid] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [expandedFirms, setExpandedFirms] = useState<Set<number>>(new Set());
   const { toast, show: notify, dismiss: dismissToast } = useToast();
 
   useEffect(() => {
@@ -240,6 +294,17 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
     }
   }
 
+  function toggleFirm(firmId: number) {
+    setExpandedFirms((prev) => {
+      const next = new Set(prev);
+      if (next.has(firmId)) next.delete(firmId);
+      else next.add(firmId);
+      return next;
+    });
+  }
+
+  const totalBranches = tenant ? tenant.firms.reduce((sum, f) => sum + (f.branches?.length ?? 0), 0) : 0;
+
   return (
     <>
       <div className="main-shell">
@@ -261,7 +326,7 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
             trail="Admin"
             title={tenant ? tenant.tenantName : loading ? "Loading…" : "Tenant"}
             pill={tenant?.isCustomOverride ? "Custom override" : undefined}
-            description="Full tenant detail: plan, usage, firms, and payment status."
+            description="Full tenant detail: plan, usage, companies, branches, and payment status."
             actions={
               <button type="button" className="button" onClick={() => router.push("/")}>
                 <ArrowLeft size={16} /> Back to tenants
@@ -306,7 +371,7 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                 </article>
                 <article className="card stat">
                   <div>
-                    <span>Firms</span>
+                    <span>Companies</span>
                     <h2>
                       {tenant.firmsUsed}/{fmtLimit(tenant.maxFirms)}
                     </h2>
@@ -324,240 +389,392 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                 </article>
               </div>
 
-              <section className="card catalogue">
-                <CardHeading title="Subscription" text="Plan, limits, and renewal timeline." />
-                <div className="form-grid" style={{ padding: "0 24px 24px" }}>
-                  <label>
-                    <span>Source URL</span>
-                    <p>
-                      {tenant.sourceUrl ? (
-                        <a href={tenant.sourceUrl} target="_blank" rel="noreferrer">
-                          {tenant.sourceUrl}
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </p>
-                  </label>
-                  <label>
-                    <span>Plan</span>
-                    <p>
-                      {tenant.subscriptionPackage}
-                      {tenant.isCustomOverride && (
-                        <span className="pill" style={{ marginLeft: 8 }}>
-                          Custom override
-                        </span>
-                      )}
-                    </p>
-                  </label>
-                  <label>
-                    <span>Monthly price</span>
-                    <p>
-                      {(() => {
-                        const pkg = packages.find((p) => p.code === tenant.subscriptionPackage);
-                        return pkg ? fmtMoney(pkg.monthlyPrice) : "—";
-                      })()}
-                    </p>
-                  </label>
-                  <label>
-                    <span>Max firms</span>
-                    <p>{fmtLimit(tenant.maxFirms)}</p>
-                  </label>
-                  <label>
-                    <span>Max staff / firm</span>
-                    <p>{fmtLimit(tenant.maxStaffPerFirm)}</p>
-                  </label>
-                  <label>
-                    <span>Max staff total</span>
-                    <p>{fmtLimit(tenant.maxStaffTotal)}</p>
-                  </label>
-                  <label>
-                    <span>Max products</span>
-                    <p>{fmtLimit(tenant.maxProducts)}</p>
-                  </label>
-                  <label>
-                    <span>Max categories</span>
-                    <p>{fmtLimit(tenant.maxCategories)}</p>
-                  </label>
-                  <label>
-                    <span>Max category mappings</span>
-                    <p>{fmtLimit(tenant.maxCategoryMappings)}</p>
-                  </label>
-                  <label>
-                    <span>Max transport firms</span>
-                    <p>{fmtLimit(tenant.maxTransportFirms)}</p>
-                  </label>
-                  <label>
-                    <span>Max attributes</span>
-                    <p>{fmtLimit(tenant.maxAttributes)}</p>
-                  </label>
-                  <label>
-                    <span>Tenant created</span>
-                    <p>{fmtDate(tenant.createdAt)}</p>
-                  </label>
-                  <label>
-                    <span>Subscription renewal</span>
-                    <p>
-                      <CalendarClock size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
-                      {fmtShortDate(tenant.subscriptionExpiresAt)}
-                      {tenant.subscriptionExpiresAt && (
-                        <span className={tenant.isAccessBlocked ? "low" : "text-muted"} style={{ marginLeft: 8 }}>
-                          ({expiryText(tenant.subscriptionExpiresAt, tenant.isAccessBlocked)})
-                        </span>
-                      )}
-                    </p>
-                  </label>
-                </div>
-              </section>
+              <nav className="tab-nav" role="tablist">
+                {TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const count =
+                    tab.key === "companies"
+                      ? tenant.firms.length
+                      : tab.key === "payment" && tenant.isAccessBlocked
+                        ? 1
+                        : undefined;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeTab === tab.key}
+                      className={activeTab === tab.key ? "active" : ""}
+                      onClick={() => setActiveTab(tab.key)}
+                    >
+                      <Icon size={15} /> {tab.label}
+                      {count !== undefined && <span className="tab-count">{count}</span>}
+                    </button>
+                  );
+                })}
+              </nav>
 
-              <section className="card catalogue">
-                <CardHeading title="Owner" text="The tenant owner's account." />
-                <div className="form-grid" style={{ padding: "0 24px 24px" }}>
-                  <label>
-                    <span>Name</span>
-                    <p>
-                      {tenant.ownerFirstName || tenant.ownerLastName
-                        ? `${tenant.ownerFirstName ?? ""} ${tenant.ownerLastName ?? ""}`.trim()
-                        : "—"}
-                    </p>
-                  </label>
-                  <label>
-                    <span>Username</span>
-                    <p>{tenant.ownerUsername}</p>
-                  </label>
-                  <label>
-                    <span>Email</span>
-                    <p>{tenant.ownerEmail}</p>
-                  </label>
-                  <label>
-                    <span>Tenant created</span>
-                    <p>{fmtDate(tenant.createdAt)}</p>
-                  </label>
-                </div>
-              </section>
+              {activeTab === "overview" && (
+                <section className="card catalogue">
+                  <CardHeading title="Subscription & limits" text="Plan, limits, and renewal timeline." />
+                  <div className="form-grid" style={{ padding: "0 24px 24px" }}>
+                    <label>
+                      <span>Source URL</span>
+                      <p>
+                        {tenant.sourceUrl ? (
+                          <a href={tenant.sourceUrl} target="_blank" rel="noreferrer">
+                            {tenant.sourceUrl}
+                          </a>
+                        ) : (
+                          "—"
+                        )}
+                      </p>
+                    </label>
+                    <label>
+                      <span>Plan</span>
+                      <p>
+                        {tenant.subscriptionPackage}
+                        {tenant.isCustomOverride && (
+                          <span className="pill" style={{ marginLeft: 8 }}>
+                            Custom override
+                          </span>
+                        )}
+                      </p>
+                    </label>
+                    <label>
+                      <span>Monthly price</span>
+                      <p>
+                        {(() => {
+                          const pkg = packages.find((p) => p.code === tenant.subscriptionPackage);
+                          return pkg ? fmtMoney(pkg.monthlyPrice) : "—";
+                        })()}
+                      </p>
+                    </label>
+                    <label>
+                      <span>Max companies</span>
+                      <p>{fmtLimit(tenant.maxFirms)}</p>
+                    </label>
+                    <label>
+                      <span>Max staff / company</span>
+                      <p>{fmtLimit(tenant.maxStaffPerFirm)}</p>
+                    </label>
+                    <label>
+                      <span>Max staff total</span>
+                      <p>{fmtLimit(tenant.maxStaffTotal)}</p>
+                    </label>
+                    <label>
+                      <span>Max products</span>
+                      <p>{fmtLimit(tenant.maxProducts)}</p>
+                    </label>
+                    <label>
+                      <span>Max categories</span>
+                      <p>{fmtLimit(tenant.maxCategories)}</p>
+                    </label>
+                    <label>
+                      <span>Max category mappings</span>
+                      <p>{fmtLimit(tenant.maxCategoryMappings)}</p>
+                    </label>
+                    <label>
+                      <span>Max transport firms</span>
+                      <p>{fmtLimit(tenant.maxTransportFirms)}</p>
+                    </label>
+                    <label>
+                      <span>Max attributes</span>
+                      <p>{fmtLimit(tenant.maxAttributes)}</p>
+                    </label>
+                    <label>
+                      <span>Tenant created</span>
+                      <p>{fmtDate(tenant.createdAt)}</p>
+                    </label>
+                    <label>
+                      <span>Subscription renewal</span>
+                      <p>
+                        <CalendarClock size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
+                        {fmtShortDate(tenant.subscriptionExpiresAt)}
+                        {tenant.subscriptionExpiresAt && (
+                          <span className={tenant.isAccessBlocked ? "low" : "text-muted"} style={{ marginLeft: 8 }}>
+                            ({expiryText(tenant.subscriptionExpiresAt, tenant.isAccessBlocked)})
+                          </span>
+                        )}
+                      </p>
+                    </label>
+                  </div>
+                </section>
+              )}
 
-              <section className="card catalogue">
-                <CardHeading
-                  title="Payment"
-                  text="Subscription payment status and Razorpay details."
-                >
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {tenant.isAccessBlocked && (
-                      <button type="button" className="button" disabled={resending} onClick={resendPaymentLink}>
-                        <RefreshCcw size={15} /> {resending ? "Sending…" : "Send payment link"}
-                      </button>
-                    )}
-                    {tenant.isAccessBlocked && (
-                      <button type="button" className="button" disabled={markingPaid} onClick={markPaid}>
-                        <CreditCard size={15} /> {markingPaid ? "Marking…" : "Mark as paid"}
-                      </button>
+              {activeTab === "companies" && (
+                <section className="card catalogue">
+                  <CardHeading
+                    title="Companies & branches"
+                    count={`${tenant.firms.length} compan${tenant.firms.length === 1 ? "y" : "ies"} · ${totalBranches} branch${totalBranches === 1 ? "" : "es"}`}
+                    text="Every company registered under this tenant, with its branches, location, and GST details."
+                  />
+                  <div className="table-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>COMPANY</th>
+                          <th>LOCATION</th>
+                          <th>GSTIN</th>
+                          <th>CONTACT</th>
+                          <th>STAFF</th>
+                          <th>STATUS</th>
+                          <th>CREATED</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tenant.firms.map((f) => {
+                          const branches = f.branches ?? [];
+                          const expanded = expandedFirms.has(f.firmId);
+                          return (
+                            <Fragment key={f.firmId}>
+                              <tr>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="firm-expand-btn"
+                                    onClick={() => toggleFirm(f.firmId)}
+                                    aria-label={expanded ? "Collapse branches" : "Expand branches"}
+                                    disabled={!branches.length}
+                                  >
+                                    {branches.length ? (expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />) : <span style={{ width: 14, display: "inline-block" }} />}
+                                  </button>
+                                  <strong>{f.firmName}</strong>
+                                  {branches.length > 0 && (
+                                    <span className="table-subtext">
+                                      {branches.length} branch{branches.length === 1 ? "" : "es"}
+                                    </span>
+                                  )}
+                                </td>
+                                <td>
+                                  <MapPin size={13} style={{ verticalAlign: -2, marginRight: 4, opacity: 0.6 }} />
+                                  {cityState(f.city, f.state)}
+                                </td>
+                                <td>{f.gstNumber ?? "—"}</td>
+                                <td>
+                                  {f.contactNumber ?? "—"}
+                                  {f.email && <span className="table-subtext">{f.email}</span>}
+                                </td>
+                                <td>
+                                  {f.employeesUsed}/{fmtLimit(f.maxEmployees)}
+                                </td>
+                                <td>
+                                  <StatusPill on={f.isActive} />
+                                </td>
+                                <td>{fmtDate(f.createdAt)}</td>
+                              </tr>
+                              {expanded && branches.length > 0 && (
+                                <tr className="sub-table-row">
+                                  <td colSpan={7}>
+                                    <div className="sub-table-wrap">
+                                      <table>
+                                        <thead>
+                                          <tr>
+                                            <th>BRANCH</th>
+                                            <th>LOCATION</th>
+                                            <th>CONTACT</th>
+                                            <th>STATUS</th>
+                                            <th>CREATED</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {branches.map((b) => (
+                                            <tr key={b.branchId}>
+                                              <td>{b.branchName}</td>
+                                              <td>{cityState(b.city, b.state)}</td>
+                                              <td>{b.contactNumber ?? "—"}</td>
+                                              <td>
+                                                <StatusPill on={b.isActive} />
+                                              </td>
+                                              <td>{fmtDate(b.createdAt)}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {!tenant.firms.length && (
+                      <EmptyState
+                        icon={<Users size={28} />}
+                        title="No companies yet"
+                        text="This tenant hasn't created any companies."
+                      />
                     )}
                   </div>
-                </CardHeading>
-                <div className="form-grid" style={{ padding: "0 24px 24px" }}>
-                  <label>
-                    <span>Status</span>
-                    <p>
-                      <span
-                        className={`usage-pill usage-${
-                          tenant.paymentStatus === "Paid" && tenant.isAccessBlocked
-                            ? "red"
-                            : PAYMENT_TONE[tenant.paymentStatus]
-                        }`}
-                      >
-                        {tenant.paymentStatus === "Paid" && tenant.isAccessBlocked ? "Expired" : tenant.paymentStatus}
-                      </span>
-                    </p>
-                  </label>
-                  <label>
-                    <span>Amount</span>
-                    <p>{fmtMoney(tenant.paymentAmount)}</p>
-                  </label>
-                  <label>
-                    <span>Payment link</span>
-                    <p>
-                      {tenant.paymentLinkUrl ? (
-                        <a href={tenant.paymentLinkUrl} target="_blank" rel="noreferrer">
-                          {tenant.paymentLinkUrl}
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </p>
-                  </label>
-                  <label>
-                    <span>Razorpay payment ID</span>
-                    <p>{tenant.razorpayPaymentId ?? "—"}</p>
-                  </label>
-                  <label>
-                    <span>Paid at</span>
-                    <p>{fmtDate(tenant.paymentReceivedAt)}</p>
-                  </label>
-                  <label>
-                    <span>Subscription {tenant.isAccessBlocked ? "expired" : "renews"}</span>
-                    <p>{fmtDate(tenant.subscriptionExpiresAt)}</p>
-                  </label>
-                </div>
-              </section>
+                </section>
+              )}
 
-              <section className="card catalogue">
-                <CardHeading
-                  title="Firms"
-                  count={`${tenant.firms.length} firm${tenant.firms.length === 1 ? "" : "s"}`}
-                  text="Every firm under this tenant."
-                />
-                <div className="table-scroll">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>FIRM</th>
-                        <th>STAFF</th>
-                        <th>STATUS</th>
-                        <th>CREATED</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tenant.firms.map((f) => (
-                        <tr key={f.firmId}>
-                          <td>
-                            <strong>{f.firmName}</strong>
-                          </td>
-                          <td>
-                            {f.employeesUsed}/{fmtLimit(f.maxEmployees)}
-                          </td>
-                          <td>
-                            <StatusPill on={f.isActive} />
-                          </td>
-                          <td>{fmtDate(f.createdAt)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {!tenant.firms.length && (
-                    <EmptyState
-                      icon={<Users size={28} />}
-                      title="No firms yet"
-                      text="This tenant hasn't created any firms."
+              {activeTab === "payment" && (
+                <>
+                  <section className="card catalogue">
+                    <CardHeading
+                      title="Current subscription"
+                      text="Live payment status, plan, and Razorpay link for this tenant."
+                    >
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {tenant.isAccessBlocked && (
+                          <button type="button" className="button" disabled={resending} onClick={resendPaymentLink}>
+                            <RefreshCcw size={15} /> {resending ? "Sending…" : "Send payment link"}
+                          </button>
+                        )}
+                        {tenant.isAccessBlocked && (
+                          <button type="button" className="button" disabled={markingPaid} onClick={markPaid}>
+                            <CreditCard size={15} /> {markingPaid ? "Marking…" : "Mark as paid"}
+                          </button>
+                        )}
+                      </div>
+                    </CardHeading>
+                    <div className="form-grid" style={{ padding: "0 24px 24px" }}>
+                      <label>
+                        <span>Status</span>
+                        <p>
+                          <span
+                            className={`usage-pill usage-${
+                              tenant.paymentStatus === "Paid" && tenant.isAccessBlocked
+                                ? "red"
+                                : PAYMENT_TONE[tenant.paymentStatus]
+                            }`}
+                          >
+                            {tenant.paymentStatus === "Paid" && tenant.isAccessBlocked ? "Expired" : tenant.paymentStatus}
+                          </span>
+                        </p>
+                      </label>
+                      <label>
+                        <span>Subscription plan</span>
+                        <p>{tenant.subscriptionPackage}</p>
+                      </label>
+                      <label>
+                        <span>Amount</span>
+                        <p>{fmtMoney(tenant.paymentAmount)}</p>
+                      </label>
+                      <label>
+                        <span>Payment link</span>
+                        <p>
+                          {tenant.paymentLinkUrl ? (
+                            <a href={tenant.paymentLinkUrl} target="_blank" rel="noreferrer">
+                              {tenant.paymentLinkUrl}
+                            </a>
+                          ) : (
+                            "—"
+                          )}
+                        </p>
+                      </label>
+                      <label>
+                        <span>Razorpay payment ID</span>
+                        <p>{tenant.razorpayPaymentId ?? "—"}</p>
+                      </label>
+                      <label>
+                        <span>Paid at</span>
+                        <p>{fmtDate(tenant.paymentReceivedAt)}</p>
+                      </label>
+                      <label>
+                        <span>Subscription {tenant.isAccessBlocked ? "expired" : "renews"}</span>
+                        <p>{fmtDate(tenant.subscriptionExpiresAt)}</p>
+                      </label>
+                    </div>
+                  </section>
+
+                  <section className="card catalogue">
+                    <CardHeading
+                      title="Payment history"
+                      count={`${tenant.paymentHistory.length} record${tenant.paymentHistory.length === 1 ? "" : "s"}`}
+                      text="Every subscription payment event for this tenant — links created, paid, failed, or cancelled."
                     />
-                  )}
-                </div>
-              </section>
+                    <div className="table-scroll">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>DATE</th>
+                            <th>PLAN</th>
+                            <th>AMOUNT</th>
+                            <th>STATUS</th>
+                            <th>RAZORPAY PAYMENT ID</th>
+                            <th>SUBSCRIPTION VALID TILL</th>
+                            <th>NOTE</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tenant.paymentHistory.map((p) => (
+                            <tr key={p.paymentHistoryId}>
+                              <td>{fmtDate(p.createdAt)}</td>
+                              <td>{p.subscriptionPackage}</td>
+                              <td>{fmtMoney(p.amount)}</td>
+                              <td>
+                                <span className={`usage-pill usage-${PAYMENT_TONE[p.status]}`}>{p.status}</span>
+                              </td>
+                              <td>{p.razorpayPaymentId ?? "—"}</td>
+                              <td>{fmtDate(p.subscriptionExpiresAt)}</td>
+                              <td className="table-subtext" style={{ display: "table-cell" }}>
+                                {p.note ?? "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {!tenant.paymentHistory.length && (
+                        <EmptyState
+                          icon={<CreditCard size={28} />}
+                          title="No payment history yet"
+                          text="No payment events have been recorded for this tenant."
+                        />
+                      )}
+                    </div>
+                  </section>
+                </>
+              )}
 
-              <section className="card catalogue">
-                <CardHeading
-                  title="Danger zone"
-                  text="Deleting removes this tenant and its firms/branches from the platform. Their owner can no longer sign in."
-                >
-                  <button
-                    type="button"
-                    className="button danger"
-                    disabled={deleting}
-                    onClick={() => setConfirmDeleteOpen(true)}
+              {activeTab === "owner" && (
+                <section className="card catalogue">
+                  <CardHeading title="Owner" text="The tenant owner's account." />
+                  <div className="form-grid" style={{ padding: "0 24px 24px" }}>
+                    <label>
+                      <span>Name</span>
+                      <p>
+                        {tenant.ownerFirstName || tenant.ownerLastName
+                          ? `${tenant.ownerFirstName ?? ""} ${tenant.ownerLastName ?? ""}`.trim()
+                          : "—"}
+                      </p>
+                    </label>
+                    <label>
+                      <span>Username</span>
+                      <p>{tenant.ownerUsername}</p>
+                    </label>
+                    <label>
+                      <span>Email</span>
+                      <p>{tenant.ownerEmail}</p>
+                    </label>
+                    <label>
+                      <span>Tenant created</span>
+                      <p>{fmtDate(tenant.createdAt)}</p>
+                    </label>
+                  </div>
+                </section>
+              )}
+
+              {activeTab === "danger" && (
+                <section className="card catalogue">
+                  <CardHeading
+                    title="Danger zone"
+                    text="Deleting removes this tenant and its companies/branches from the platform. Their owner can no longer sign in."
                   >
-                    <Trash2 size={15} /> {deleting ? "Deleting…" : "Delete tenant"}
-                  </button>
-                </CardHeading>
-              </section>
+                    <button
+                      type="button"
+                      className="button danger"
+                      disabled={deleting}
+                      onClick={() => setConfirmDeleteOpen(true)}
+                    >
+                      <Trash2 size={15} /> {deleting ? "Deleting…" : "Delete tenant"}
+                    </button>
+                  </CardHeading>
+                </section>
+              )}
             </>
           )}
         </main>
@@ -567,7 +784,7 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
         title="Delete this tenant?"
         description={
           tenant
-            ? `"${tenant.tenantName}" and its ${tenant.firms.length} firm${tenant.firms.length === 1 ? "" : "s"} will be removed. The owner and staff will lose access immediately. This cannot be undone from the UI.`
+            ? `"${tenant.tenantName}" and its ${tenant.firms.length} compan${tenant.firms.length === 1 ? "y" : "ies"} will be removed. The owner and staff will lose access immediately. This cannot be undone from the UI.`
             : ""
         }
         confirmLabel="Delete tenant"

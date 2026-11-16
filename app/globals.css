@@ -594,6 +594,70 @@ h1 {
   padding: 4px 8px;
   border-radius: 4px;
 }
+.tab-nav {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin: 20px 0 16px;
+  overflow-x: auto;
+}
+.tab-nav button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tab-nav button:hover {
+  color: var(--heading);
+}
+.tab-nav button.active {
+  color: #4d4fd6;
+  border-bottom-color: #4d4fd6;
+}
+.tab-nav button .tab-count {
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--border);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.tab-nav button.active .tab-count {
+  color: #4d4fd6;
+  background: #ebe8ff;
+}
+.sub-table-row td {
+  padding: 0 !important;
+  border-bottom: 0 !important;
+}
+.sub-table-wrap {
+  padding: 4px 16px 16px 48px;
+  background: #fafafd;
+}
+.sub-table-wrap table {
+  width: 100%;
+}
+.sub-table-wrap th, .sub-table-wrap td {
+  font-size: 12px;
+  padding: 8px 10px;
+}
+.firm-expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  margin-right: 6px;
+}
 .page-heading p {
   font-size: 12px;
   color: #9294a5;
