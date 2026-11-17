@@ -113,6 +113,7 @@ type TenantDetail = {
   firms: Firm[];
   paymentHistory: PaymentHistoryEntry[];
   resourceUsage: ResourceUsageItem[];
+  resourceLimits: Record<string, number | null>;
 };
 
 type ResourceUsageItem = {
@@ -121,6 +122,15 @@ type ResourceUsageItem = {
   used: number;
   max: number | null;
 };
+
+/** Generic resource-limit keys (see Backend.Api's ResourceKeys) shown in Plan limits,
+ * beyond the fixed max* columns Tenant already has. */
+const RESOURCE_LIMIT_FIELDS: { key: string; label: string }[] = [
+  { key: "customers", label: "Max customers" },
+  { key: "quotations", label: "Max quotations" },
+  { key: "roles", label: "Max roles" },
+  { key: "product_images_per_product", label: "Max images per product" },
+];
 
 const RESOURCE_USAGE_ICONS: Record<string, typeof Package> = {
   products: Package,
@@ -234,6 +244,7 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
   const [retry, setRetry] = useState(0);
   const [resending, setResending] = useState(false);
   const [markingPaid, setMarkingPaid] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
@@ -316,6 +327,20 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
       notify(err instanceof Error ? err.message : "Unable to mark tenant as paid.");
     } finally {
       setMarkingPaid(false);
+    }
+  }
+
+  async function resyncLimits() {
+    if (!tenant) return;
+    setResyncing(true);
+    try {
+      await fetchJson(`/api/tenants/${tenant.tenantId}/resync-limits`, { method: "POST" }, "Unable to resync plan limits.");
+      notify("Plan limits resynced from the current plan.");
+      setRetry((n) => n + 1);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Unable to resync plan limits.");
+    } finally {
+      setResyncing(false);
     }
   }
 
@@ -768,7 +793,11 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                   </section>
 
                   <section className="card catalogue">
-                    <CardHeading title="Plan limits" text="Firm, staff, and catalog caps for this tenant's plan." />
+                    <CardHeading title="Plan limits" text="Firm, staff, and catalog caps for this tenant's plan.">
+                      <button type="button" className="button" disabled={resyncing} onClick={resyncLimits}>
+                        <RefreshCcw size={15} /> {resyncing ? "Resyncing…" : "Resync from plan"}
+                      </button>
+                    </CardHeading>
                     <div className="form-grid" style={{ padding: "0 24px 24px" }}>
                       <label>
                         <span>Plan</span>
@@ -822,6 +851,12 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                         <span>Max attributes</span>
                         <p>{fmtLimit(tenant.maxAttributes)}</p>
                       </label>
+                      {RESOURCE_LIMIT_FIELDS.map(({ key, label }) => (
+                        <label key={key}>
+                          <span>{label}</span>
+                          <p>{fmtLimit(tenant.resourceLimits?.[key] ?? null)}</p>
+                        </label>
+                      ))}
                       <label>
                         <span>Subscription renewal</span>
                         <p>
