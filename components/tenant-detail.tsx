@@ -5,11 +5,16 @@ import {
   ArrowLeft,
   Building2,
   CalendarClock,
+  Calculator,
   ChevronDown,
   ChevronRight,
+  Contact,
   CreditCard,
   FileText,
+  GitBranch,
+  Image as ImageIcon,
   Info,
+  Link2,
   LayoutGrid,
   LogOut,
   MapPin,
@@ -20,6 +25,7 @@ import {
   Tags,
   Trash2,
   User as UserIcon,
+  UserCog,
   Users,
 } from "lucide-react";
 import { fetchJson } from "@/lib/http";
@@ -119,13 +125,19 @@ type ResourceUsageItem = {
 const RESOURCE_USAGE_ICONS: Record<string, typeof Package> = {
   products: Package,
   categories: Tags,
+  category_mappings: Link2,
   customers: Users,
   quotations: FileText,
   roles: Shield,
   orders: ShoppingCart,
+  images: ImageIcon,
+  staff: UserCog,
+  branches: GitBranch,
+  contacts: Contact,
+  accounting_syncs: Calculator,
 };
 
-const NOT_YET_TRACKED = ["Suppliers", "Purchase orders", "Godowns", "Barcode labels"];
+const NOT_YET_TRACKED = ["Suppliers", "Purchase orders", "Godowns", "Barcode labels", "Transport firms", "Attributes"];
 
 function fmtLimit(value: number | null) {
   return value === null || value >= 2147483647 ? "∞" : String(value);
