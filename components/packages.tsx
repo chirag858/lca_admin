@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Layers, LogOut, Plus, Pencil, RefreshCcw } from "lucide-react";
+import { Eye, Layers, LogOut, Plus, Pencil, RefreshCcw } from "lucide-react";
 import { fetchJson } from "@/lib/http";
 import { PageHeader } from "./ui/page-header";
 import { CardHeading } from "./ui/card-heading";
@@ -22,7 +22,7 @@ const PAGE_SIZE = 10;
  * Generic resource limits (key -> max count) — see Backend.Api's ResourceKeys. Adding a new
  * limited resource later is one entry here plus a backend-side check, not a new column/migration.
  */
-const RESOURCE_LIMIT_FIELDS: { key: string; label: string }[] = [
+export const RESOURCE_LIMIT_FIELDS: { key: string; label: string }[] = [
   { key: "customers", label: "Max customers" },
   { key: "quotations", label: "Max quotations" },
   { key: "roles", label: "Max roles" },
@@ -31,7 +31,7 @@ const RESOURCE_LIMIT_FIELDS: { key: string; label: string }[] = [
 
 type ResourceLimits = Record<string, number | null>;
 
-type Package = {
+export type Package = {
   code: string;
   displayName: string;
   defaultMaxFirms: number | null;
@@ -48,7 +48,7 @@ type Package = {
   resourceLimits: ResourceLimits;
 };
 
-function fmtLimit(value: number | null) {
+export function fmtLimit(value: number | null) {
   return value === null || value >= 2147483647 ? "Unlimited" : String(value);
 }
 
@@ -197,7 +197,15 @@ export default function AdminPackagesPage() {
                   )}
                   {!loading && pagedPackages.map((p) => (
                     <tr key={p.code}>
-                      <td>{p.displayName}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="link-button"
+                          onClick={() => router.push(`/packages/${encodeURIComponent(p.code)}`)}
+                        >
+                          {p.displayName}
+                        </button>
+                      </td>
                       <td>{fmtLimit(p.defaultMaxFirms)}</td>
                       <td>{fmtLimit(p.defaultMaxStaffPerFirm)}</td>
                       <td>{fmtLimit(p.defaultMaxStaffTotal)}</td>
@@ -215,6 +223,14 @@ export default function AdminPackagesPage() {
                       </td>
                       <td>
                         <div className="row-actions">
+                          <button
+                            type="button"
+                            title="View package"
+                            aria-label={"View " + p.displayName}
+                            onClick={() => router.push(`/packages/${encodeURIComponent(p.code)}`)}
+                          >
+                            <Eye size={15} />
+                          </button>
                           <button type="button" title="Edit package" aria-label={"Edit " + p.displayName} onClick={() => setEditing(p)}>
                             <Pencil size={15} />
                           </button>
@@ -520,7 +536,7 @@ function CreatePackageModal({
   );
 }
 
-function EditPackageModal({
+export function EditPackageModal({
   pkg,
   onClose,
   onSaved,

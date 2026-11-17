@@ -1439,6 +1439,19 @@ td strong {
 .text-muted {
   color: var(--muted);
 }
+.link-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.link-button:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
 .form-alert {
   color: var(--danger);
   font-size: 13px;
