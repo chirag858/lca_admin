@@ -97,6 +97,8 @@ type TenantDetail = {
   paymentReceivedAt: string | null;
   subscriptionExpiresAt: string | null;
   isAccessBlocked: boolean;
+  onboardingStage: "payment_pending" | "setup_pending" | "onboarded";
+  onboardingStageLabel: string;
   firms: Firm[];
   paymentHistory: PaymentHistoryEntry[];
 };
@@ -400,6 +402,16 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                       {tenant.staffUsed}/{fmtLimit(tenant.maxStaffTotal)}
                     </h2>
                     <UsageBar used={tenant.staffUsed} max={tenant.maxStaffTotal} />
+                  </div>
+                </article>
+                <article className="card stat">
+                  <div>
+                    <span>Onboarding</span>
+                    <h2 style={{ fontSize: 15 }}>
+                      <span className={`usage-pill usage-${tenant.onboardingStage === "onboarded" ? "green" : "amber"}`}>
+                        {tenant.onboardingStageLabel}
+                      </span>
+                    </h2>
                   </div>
                 </article>
               </div>

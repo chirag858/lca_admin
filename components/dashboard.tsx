@@ -72,7 +72,19 @@ type TenantUsage = {
   paymentLinkUrl: string | null;
   subscriptionExpiresAt: string | null;
   isAccessBlocked: boolean;
+  onboardingStage: "payment_pending" | "setup_pending" | "onboarded";
+  onboardingStageLabel: string;
 };
+
+const ONBOARDING_TONE: Record<TenantUsage["onboardingStage"], "amber" | "green"> = {
+  payment_pending: "amber",
+  setup_pending: "amber",
+  onboarded: "green",
+};
+
+function OnboardingStagePill({ stage, label }: { stage: TenantUsage["onboardingStage"]; label: string }) {
+  return <span className={`usage-pill usage-${ONBOARDING_TONE[stage]}`}>{label}</span>;
+}
 
 function fmtLimit(value: number | null) {
   return value === null || value >= 2147483647 ? "∞" : String(value);
@@ -130,6 +142,7 @@ export default function AdminDashboard() {
   const [planFilter, setPlanFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState("all");
+  const [stageFilter, setStageFilter] = useState("all");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -234,7 +247,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, planFilter, statusFilter, paymentFilter]);
+  }, [search, planFilter, statusFilter, paymentFilter, stageFilter]);
 
   const filteredTenants = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -243,6 +256,7 @@ export default function AdminDashboard() {
       if (statusFilter === "active" && !t.isActive) return false;
       if (statusFilter === "inactive" && t.isActive) return false;
       if (paymentFilter !== "all" && t.paymentStatus !== paymentFilter) return false;
+      if (stageFilter !== "all" && t.onboardingStage !== stageFilter) return false;
       if (
         q &&
         !t.tenantName.toLowerCase().includes(q) &&
@@ -252,7 +266,7 @@ export default function AdminDashboard() {
         return false;
       return true;
     });
-  }, [tenants, search, planFilter, statusFilter, paymentFilter]);
+  }, [tenants, search, planFilter, statusFilter, paymentFilter, stageFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTenants.length / PAGE_SIZE));
   const pagedTenants = filteredTenants.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -348,6 +362,17 @@ export default function AdminDashboard() {
                   { value: "Cancelled", label: "Cancelled" },
                 ]}
               />
+              <Select
+                ariaLabel="Filter by onboarding stage"
+                value={stageFilter}
+                onChange={setStageFilter}
+                options={[
+                  { value: "all", label: "All onboarding stages" },
+                  { value: "payment_pending", label: "Payment pending" },
+                  { value: "setup_pending", label: "Setting up" },
+                  { value: "onboarded", label: "Onboarded" },
+                ]}
+              />
             </div>
             <div className="table-scroll">
               <table>
@@ -359,11 +384,12 @@ export default function AdminDashboard() {
                     <th>STAFF</th>
                     <th>STATUS</th>
                     <th>PAYMENT</th>
+                    <th>ONBOARDING</th>
                     <th aria-label="Actions" />
                   </tr>
                 </thead>
                 <tbody>
-                  {loading && <SkeletonRows cols={7} widths={["60%", "40%", "50%", "50%", "40%", "60%", "20%"]} />}
+                  {loading && <SkeletonRows cols={8} widths={["60%", "40%", "50%", "50%", "40%", "60%", "60%", "20%"]} />}
                   {!loading && pagedTenants.map((t) => (
                     <tr key={t.tenantId}>
                       <td>
@@ -395,6 +421,9 @@ export default function AdminDashboard() {
                             {fmtDate(t.subscriptionExpiresAt)}
                           </div>
                         )}
+                      </td>
+                      <td>
+                        <OnboardingStagePill stage={t.onboardingStage} label={t.onboardingStageLabel} />
                       </td>
                       <td>
                         <div className="row-actions">
