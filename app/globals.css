@@ -4614,6 +4614,108 @@ td:last-child {
   padding: 5px 10px;
   border-radius: 6px;
 }
+.icon-tile.violet {
+  background: #ebe8ff;
+  color: #4d4fd6;
+}
+.notify-form-field {
+  display: grid;
+  gap: 6px;
+}
+.notify-form-field > .field-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.char-count {
+  font-size: 11px;
+  color: var(--muted);
+}
+.audience-picker {
+  display: grid;
+  gap: 10px;
+}
+.selected-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.selected-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ebe8ff;
+  color: #4d4fd6;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 6px 5px 12px;
+  border-radius: 999px;
+}
+.selected-chip button {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(77, 79, 214, 0.14);
+  color: #4d4fd6;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.selected-chip button:hover {
+  background: rgba(77, 79, 214, 0.26);
+}
+.tenant-picker-list {
+  max-height: 240px;
+  overflow-y: auto;
+  display: grid;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.tenant-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  width: 100%;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+}
+.tenant-picker-item:hover {
+  background: #fff;
+  color: var(--heading);
+}
+.tenant-picker-item.selected {
+  background: #fff;
+  color: var(--heading);
+  font-weight: 600;
+}
+.tenant-picker-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  display: grid;
+  place-items: center;
+  flex: 0 0 18px;
+  color: #fff;
+  background: #fff;
+  transition: background 0.12s, border-color 0.12s;
+}
+.tenant-picker-item.selected .tenant-picker-check {
+  background: #4d4fd6;
+  border-color: #4d4fd6;
+}
 .manage-product-meta {
   display: flex;
   align-items: center;
