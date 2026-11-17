@@ -14,7 +14,6 @@ import {
   GitBranch,
   Image as ImageIcon,
   Info,
-  Link2,
   LayoutGrid,
   LogOut,
   MapPin,
@@ -135,7 +134,6 @@ const RESOURCE_LIMIT_FIELDS: { key: string; label: string }[] = [
 const RESOURCE_USAGE_ICONS: Record<string, typeof Package> = {
   products: Package,
   categories: Tags,
-  category_mappings: Link2,
   customers: Users,
   quotations: FileText,
   roles: Shield,
@@ -147,7 +145,18 @@ const RESOURCE_USAGE_ICONS: Record<string, typeof Package> = {
   accounting_syncs: Calculator,
 };
 
-const NOT_YET_TRACKED = ["Suppliers", "Purchase orders", "Godowns", "Barcode labels", "Transport firms", "Attributes"];
+// Category mapping and barcode/etc. below are real pages in the app, but currently run on
+// static mock data (no tenant-scoped persistence) — showing a "used" count for them would be
+// fabricated, not real usage, so they stay off the Resource usage grid until that's built.
+const NOT_YET_TRACKED = [
+  "Category mappings",
+  "Suppliers",
+  "Purchase orders",
+  "Godowns",
+  "Barcode labels",
+  "Transport firms",
+  "Attributes",
+];
 
 function fmtLimit(value: number | null) {
   return value === null || value >= 2147483647 ? "∞" : String(value);
