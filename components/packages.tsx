@@ -18,6 +18,19 @@ import { Pagination } from "./ui/pagination";
 
 const PAGE_SIZE = 10;
 
+/**
+ * Generic resource limits (key -> max count) — see Backend.Api's ResourceKeys. Adding a new
+ * limited resource later is one entry here plus a backend-side check, not a new column/migration.
+ */
+const RESOURCE_LIMIT_FIELDS: { key: string; label: string }[] = [
+  { key: "customers", label: "Max customers" },
+  { key: "quotations", label: "Max quotations" },
+  { key: "roles", label: "Max roles" },
+  { key: "product_images_per_product", label: "Max images per product" },
+];
+
+type ResourceLimits = Record<string, number | null>;
+
 type Package = {
   code: string;
   displayName: string;
@@ -32,6 +45,7 @@ type Package = {
   monthlyPrice: number;
   isActive: boolean;
   sortOrder: number;
+  resourceLimits: ResourceLimits;
 };
 
 function fmtLimit(value: number | null) {
@@ -166,6 +180,9 @@ export default function AdminPackagesPage() {
                     <th>MAX CAT. MAPPINGS</th>
                     <th>MAX TRANSPORT FIRMS</th>
                     <th>MAX ATTRIBUTES</th>
+                    {RESOURCE_LIMIT_FIELDS.map(({ key, label }) => (
+                      <th key={key}>{label.replace("Max ", "MAX ").toUpperCase()}</th>
+                    ))}
                     <th>PRICE/MO</th>
                     <th>STATUS</th>
                     <th aria-label="Actions" />
@@ -174,8 +191,8 @@ export default function AdminPackagesPage() {
                 <tbody>
                   {loading && (
                     <SkeletonRows
-                      cols={12}
-                      widths={["70%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "50%", "40%", "20%"]}
+                      cols={12 + RESOURCE_LIMIT_FIELDS.length}
+                      widths={["70%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "40%", "50%", "40%", "20%"]}
                     />
                   )}
                   {!loading && pagedPackages.map((p) => (
@@ -189,6 +206,9 @@ export default function AdminPackagesPage() {
                       <td>{fmtLimit(p.defaultMaxCategoryMappings)}</td>
                       <td>{fmtLimit(p.defaultMaxTransportFirms)}</td>
                       <td>{fmtLimit(p.defaultMaxAttributes)}</td>
+                      {RESOURCE_LIMIT_FIELDS.map(({ key }) => (
+                        <td key={key}>{fmtLimit(p.resourceLimits?.[key] ?? null)}</td>
+                      ))}
                       <td>₹{p.monthlyPrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
                       <td>
                         <StatusPill on={p.isActive} onLabel="Active" offLabel="Retired" />
@@ -269,6 +289,49 @@ function FieldError({ message }: { message?: string }) {
 
 const CODE_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{1,29}$/;
 
+function resourceLimitsToStrings(limits: ResourceLimits): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const { key } of RESOURCE_LIMIT_FIELDS) {
+    const v = limits[key];
+    out[key] = v === null || v === undefined ? "" : String(v);
+  }
+  return out;
+}
+
+function resourceLimitsToPayload(values: Record<string, string>): ResourceLimits {
+  const out: ResourceLimits = {};
+  for (const { key } of RESOURCE_LIMIT_FIELDS) {
+    const raw = values[key]?.trim();
+    out[key] = raw ? Number(raw) : null;
+  }
+  return out;
+}
+
+function ResourceLimitFields({
+  values,
+  onChange,
+}: {
+  values: Record<string, string>;
+  onChange: (key: string, value: string) => void;
+}) {
+  return (
+    <div className="form-grid">
+      {RESOURCE_LIMIT_FIELDS.map(({ key, label }) => (
+        <label key={key}>
+          <span>{label}</span>
+          <input
+            type="number"
+            min={0}
+            placeholder="Blank = unlimited"
+            value={values[key] ?? ""}
+            onChange={(e) => onChange(key, e.target.value)}
+          />
+        </label>
+      ))}
+    </div>
+  );
+}
+
 function CreatePackageModal({
   open,
   onClose,
@@ -290,6 +353,7 @@ function CreatePackageModal({
   const [defaultMaxAttributes, setDefaultMaxAttributes] = useState("");
   const [monthlyPrice, setMonthlyPrice] = useState("0");
   const [sortOrder, setSortOrder] = useState("0");
+  const [resourceLimits, setResourceLimits] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -303,6 +367,7 @@ function CreatePackageModal({
     setDefaultMaxProducts("");
     setDefaultMaxCategories("");
     setDefaultMaxCategoryMappings("");
+    setResourceLimits({});
     setDefaultMaxTransportFirms("");
     setDefaultMaxAttributes("");
     setMonthlyPrice("0");
@@ -346,6 +411,7 @@ function CreatePackageModal({
             defaultMaxAttributes: defaultMaxAttributes.trim() === "" ? null : Number(defaultMaxAttributes),
             monthlyPrice: Number(monthlyPrice) || 0,
             sortOrder: Number(sortOrder) || 0,
+            resourceLimits: resourceLimitsToPayload(resourceLimits),
           }),
         },
         "Unable to create package.",
@@ -429,6 +495,10 @@ function CreatePackageModal({
             <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxAttributes} onChange={(e) => setDefaultMaxAttributes(e.target.value)} />
           </label>
         </div>
+        <ResourceLimitFields
+          values={resourceLimits}
+          onChange={(key, value) => setResourceLimits((p) => ({ ...p, [key]: value }))}
+        />
         <div className="form-grid">
           <label>
             <span>Monthly price (₹)</span>
@@ -471,6 +541,7 @@ function EditPackageModal({
   const [monthlyPrice, setMonthlyPrice] = useState("0");
   const [sortOrder, setSortOrder] = useState("0");
   const [isActive, setIsActive] = useState(true);
+  const [resourceLimits, setResourceLimits] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -488,6 +559,7 @@ function EditPackageModal({
     setMonthlyPrice(String(pkg.monthlyPrice));
     setSortOrder(String(pkg.sortOrder));
     setIsActive(pkg.isActive);
+    setResourceLimits(resourceLimitsToStrings(pkg.resourceLimits ?? {}));
     setError("");
   }, [pkg]);
 
@@ -517,6 +589,7 @@ function EditPackageModal({
             monthlyPrice: Number(monthlyPrice) || 0,
             sortOrder: Number(sortOrder) || 0,
             isActive,
+            resourceLimits: resourceLimitsToPayload(resourceLimits),
           }),
         },
         "Unable to update package.",
@@ -580,6 +653,10 @@ function EditPackageModal({
             <input type="number" min={0} placeholder="Blank = unlimited" value={defaultMaxAttributes} onChange={(e) => setDefaultMaxAttributes(e.target.value)} />
           </label>
         </div>
+        <ResourceLimitFields
+          values={resourceLimits}
+          onChange={(key, value) => setResourceLimits((p) => ({ ...p, [key]: value }))}
+        />
         <div className="form-grid">
           <label>
             <span>Monthly price (₹)</span>

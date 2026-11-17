@@ -9,6 +9,25 @@ function limitOrNull(value: unknown): number | null | undefined {
   return Number.isInteger(n) && n >= 0 ? n : null;
 }
 
+const RESOURCE_KEYS = ["customers", "quotations", "roles", "product_images_per_product"];
+
+function parseResourceLimits(value: unknown): Record<string, number | null> | null {
+  if (value === null || value === undefined) return {};
+  if (typeof value !== "object" || Array.isArray(value)) return null;
+  const out: Record<string, number | null> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (!RESOURCE_KEYS.includes(key)) return null;
+    if (raw === "" || raw === null || raw === undefined) {
+      out[key] = null;
+      continue;
+    }
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 0) return null;
+    out[key] = n;
+  }
+  return out;
+}
+
 export async function PUT(request: Request, { params }: { params: Promise<{ code: string }> }) {
   if (!isSameOrigin(request)) return invalidOriginResponse();
   const code = (await params).code;
@@ -42,6 +61,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ code
   if (!Number.isFinite(monthlyPrice) || monthlyPrice < 0)
     return Response.json({ error: "Enter a valid monthly price." }, { status: 400 });
 
+  const resourceLimits = parseResourceLimits(body.resourceLimits);
+  if (resourceLimits === null)
+    return Response.json({ error: "Resource limits must be whole numbers of 0 or more, or left blank for unlimited." }, { status: 400 });
+
   return proxyBackend(`subscription-packages/${encodeURIComponent(code)}`, {
     method: "PUT",
     body: {
@@ -57,6 +80,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ code
       monthlyPrice,
       sortOrder,
       isActive: body.isActive === true,
+      resourceLimits,
     },
   });
 }
