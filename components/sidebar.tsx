@@ -13,6 +13,7 @@ import {
   Shield,
   Bell,
   ScrollText,
+  Workflow,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Brand from "./brand";
@@ -27,6 +28,7 @@ const groups: { heading: string; items: NavItem[] }[] = [
       { label: "Analytics", href: "/analytics", icon: BarChart3 },
       { label: "Tenants & Subscriptions", href: "/tenants", icon: ShieldCheck },
       { label: "Subscription Packages", href: "/packages", icon: Layers },
+      { label: "Onboarding", href: "/onboarding", icon: Workflow },
     ],
   },
   {
