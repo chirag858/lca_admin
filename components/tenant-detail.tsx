@@ -8,11 +8,16 @@ import {
   ChevronDown,
   ChevronRight,
   CreditCard,
+  FileText,
+  Info,
   LayoutGrid,
   LogOut,
   MapPin,
+  Package,
   RefreshCcw,
   Shield,
+  ShoppingCart,
+  Tags,
   Trash2,
   User as UserIcon,
   Users,
@@ -101,7 +106,26 @@ type TenantDetail = {
   onboardingStageLabel: string;
   firms: Firm[];
   paymentHistory: PaymentHistoryEntry[];
+  resourceUsage: ResourceUsageItem[];
 };
+
+type ResourceUsageItem = {
+  key: string;
+  label: string;
+  used: number;
+  max: number | null;
+};
+
+const RESOURCE_USAGE_ICONS: Record<string, typeof Package> = {
+  products: Package,
+  categories: Tags,
+  customers: Users,
+  quotations: FileText,
+  roles: Shield,
+  orders: ShoppingCart,
+};
+
+const NOT_YET_TRACKED = ["Suppliers", "Purchase orders", "Godowns", "Barcode labels"];
 
 function fmtLimit(value: number | null) {
   return value === null || value >= 2147483647 ? "∞" : String(value);
@@ -442,6 +466,57 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
               </nav>
 
               {activeTab === "overview" && (
+                <>
+                <section className="card catalogue">
+                  <CardHeading title="Resource usage" text="How much of each plan limit this tenant has used so far." />
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))",
+                      gap: 14,
+                      padding: "0 24px 20px",
+                    }}
+                  >
+                    {tenant.resourceUsage.map((item) => {
+                      const Icon = RESOURCE_USAGE_ICONS[item.key] ?? Package;
+                      return (
+                        <div
+                          key={item.key}
+                          style={{ padding: 14, borderRadius: 10, border: "1px solid var(--border)" }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 7,
+                              color: "var(--muted)",
+                              fontSize: 11.5,
+                              fontWeight: 600,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.03em",
+                            }}
+                          >
+                            <Icon size={14} /> {item.label}
+                          </div>
+                          <h2 style={{ margin: "6px 0 0", fontSize: 22 }}>
+                            {item.used}
+                            <span style={{ fontSize: 12.5, color: "var(--muted)", fontWeight: 500 }}>
+                              /{fmtLimit(item.max)}
+                            </span>
+                          </h2>
+                          <UsageBar used={item.used} max={item.max} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p
+                    className="table-subtext"
+                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 24px 20px", margin: 0 }}
+                  >
+                    <Info size={13} /> Not tracked yet: {NOT_YET_TRACKED.join(", ")} — these features don't persist
+                    data in the backend yet, so there's nothing to count.
+                  </p>
+                </section>
                 <section className="card catalogue">
                   <CardHeading title="Tenant details" text="Who this tenant is and how long they've been on the platform." />
                   <div className="form-grid" style={{ padding: "0 24px 24px" }}>
@@ -498,6 +573,7 @@ export default function TenantDetailPage({ tenantId }: { tenantId: number }) {
                     </label>
                   </div>
                 </section>
+                </>
               )}
 
               {activeTab === "companies" && (
