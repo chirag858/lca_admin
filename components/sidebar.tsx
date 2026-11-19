@@ -14,6 +14,7 @@ import {
   Bell,
   ScrollText,
   Workflow,
+  ClipboardCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Brand from "./brand";
@@ -25,6 +26,7 @@ const groups: { heading: string; items: NavItem[] }[] = [
     heading: "PLATFORM",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Registration Requests", href: "/registration-requests", icon: ClipboardCheck },
       { label: "Analytics", href: "/analytics", icon: BarChart3 },
       { label: "Tenants & Subscriptions", href: "/tenants", icon: ShieldCheck },
       { label: "Subscription Packages", href: "/packages", icon: Layers },

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, RefreshCcw, Workflow, MailCheck, CreditCard, Building2, CheckCircle2 } from "lucide-react";
+import { LogOut, RefreshCcw, Workflow, MailCheck, CreditCard, Building2, CheckCircle2, PauseCircle, XCircle, ClipboardCheck } from "lucide-react";
 import { fetchJson } from "@/lib/http";
 import { PageHeader } from "./ui/page-header";
 import { CardHeading } from "./ui/card-heading";
@@ -12,7 +12,7 @@ import { Select, type SelectOption } from "./select";
 import Link from "next/link";
 
 type OnboardingEntry = {
-  stage: "registered" | "payment_pending" | "setup_pending" | "onboarded";
+  stage: "registered" | "under_review" | "on_hold" | "rejected" | "payment_pending" | "setup_pending" | "onboarded";
   stageLabel: string;
   tenantId: number | null;
   registrationId: string | null;
@@ -28,6 +28,9 @@ type OnboardingEntry = {
 
 const STAGE_META: Record<OnboardingEntry["stage"], { label: string; icon: typeof MailCheck; pill: string }> = {
   registered: { label: "Registered", icon: MailCheck, pill: "usage-pill usage-red" },
+  under_review: { label: "Under review", icon: ClipboardCheck, pill: "usage-pill usage-amber" },
+  on_hold: { label: "On hold", icon: PauseCircle, pill: "usage-pill usage-amber" },
+  rejected: { label: "Rejected", icon: XCircle, pill: "usage-pill usage-red" },
   payment_pending: { label: "Payment pending", icon: CreditCard, pill: "usage-pill usage-amber" },
   setup_pending: { label: "Setting up", icon: Building2, pill: "usage-pill usage-amber" },
   onboarded: { label: "Onboarded", icon: CheckCircle2, pill: "usage-pill usage-green" },
@@ -36,6 +39,9 @@ const STAGE_META: Record<OnboardingEntry["stage"], { label: string; icon: typeof
 const STAGE_OPTIONS: SelectOption[] = [
   { value: "", label: "All stages" },
   { value: "registered", label: "Registered — unverified" },
+  { value: "under_review", label: "Under review" },
+  { value: "on_hold", label: "On hold" },
+  { value: "rejected", label: "Rejected" },
   { value: "payment_pending", label: "Payment pending" },
   { value: "setup_pending", label: "Setting up" },
   { value: "onboarded", label: "Onboarded" },
@@ -93,7 +99,10 @@ export default function Onboarding() {
   }
 
   const counts = useMemo(() => {
-    const c = { registered: 0, payment_pending: 0, setup_pending: 0, onboarded: 0 };
+    const c = {
+      registered: 0, under_review: 0, on_hold: 0, rejected: 0,
+      payment_pending: 0, setup_pending: 0, onboarded: 0,
+    };
     for (const e of entries) c[e.stage]++;
     return c;
   }, [entries]);
@@ -142,6 +151,14 @@ export default function Onboarding() {
               <small>Email not verified yet</small>
             </div>
             <span className="icon-tile orange"><MailCheck size={23} /></span>
+          </article>
+          <article className="card stat">
+            <div>
+              <span>Under review</span>
+              <h2>{String(counts.under_review).padStart(2, "0")}</h2>
+              <small>Verified, awaiting a decision</small>
+            </div>
+            <span className="icon-tile violet"><ClipboardCheck size={23} /></span>
           </article>
           <article className="card stat">
             <div>

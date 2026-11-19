@@ -31,6 +31,14 @@ export function parseId(value: string | null | undefined) {
   return id <= 2147483647 ? id : null;
 }
 
+const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Returns the value unchanged if it's a well-formed GUID, else null. */
+export function parseGuid(value: string | null | undefined) {
+  if (!value || !GUID_PATTERN.test(value)) return null;
+  return value;
+}
+
 /**
  * Returns an error response unless the context belongs to an owner.
  * A null/undefined context (no session or unreadable claims) never passes.
